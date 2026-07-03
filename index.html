@@ -471,6 +471,7 @@ function place(type,c,r){
   if(money<base.cost){ SND.bad(); return; }
   money-=base.cost;
   towers.push({type,c,r,lvl:1,cd:0,anim:0,ang:-Math.PI/2,born:0.35});
+  gameEvent('tower_built',{type:type,wave:wave});
   if(towers.length===1) gameEvent('first_tower');
   SND.place();
   ring(offX+(c+0.5)*CS, offY+(r+0.5)*CS, '#ffd23c', base.rng*CS);
@@ -581,6 +582,7 @@ waveBtn.onclick=()=>{
   A(); SND.wave();
   if(tut===2) tutNext(0);
   wave++; waveActive=true;
+  gameEvent('wave_reached',{wave:wave,storm:stormMode?1:0});
   if(wave===3) gameEvent('wave_3');
   if(wave===5) gameEvent('wave_5');
   if(wave===15) gameEvent('wave_15');
@@ -592,6 +594,7 @@ waveBtn.onclick=()=>{
 function endGame(win){
   state=win?'win':'over';
   gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives,storm:stormMode?1:0});
+  gameEvent(win?'game_win':'game_lose',{wave:wave,storm:stormMode?1:0});
   win?SND.win():SND.lose();
   overlay.classList.remove('hidden');
   $('top').classList.add('hidden'); bar.classList.add('hidden'); hideTwMenu();
