@@ -92,8 +92,12 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #overlay {
   position:fixed; inset:0; z-index:10; display:flex; flex-direction:column;
   align-items:center; justify-content:center; text-align:center;
-  background:rgba(6,10,20,.9); color:#e8f0ff; padding:24px;
+  background:
+    linear-gradient(180deg, rgba(6,10,20,.55) 0%, rgba(6,10,20,.82) 55%, rgba(6,10,20,.96) 100%),
+    url('./assets/cover.jpg') center 30%/cover no-repeat #060a14;
+  color:#e8f0ff; padding:24px;
 }
+#overlay h1, #overlay p { text-shadow:0 2px 12px rgba(0,0,0,.8); }
 #overlay h1 { font-size:32px; font-weight:900; line-height:1.15; margin-bottom:10px; }
 #overlay p { color:#9fb2d6; font-size:15px; line-height:1.55; max-width:330px; margin-bottom:22px; }
 #overlay button { background:#ffd23c; color:#1a1400; font-size:18px; padding:14px 42px; box-shadow:0 6px 20px rgba(255,210,60,.35); }
