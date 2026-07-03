@@ -1,2 +1,15 @@
-# Baikal_TowerDefence_Bilikto
-🏹 Оборона Байкала — tower defense про защиту нерпы от орды роботов. HTML5/Canvas, играется в браузере с телефона. Baikal Tower Defense game (Russian).
+# 🏹 Оборона Байкала / Baikal Tower Defense
+
+Tower defense про защиту нерпы и Байкала от орды роботов. Чистый HTML5/Canvas + WebAudio, без движков и зависимостей. Оптимизирована под мобильные (drag&drop башен, тач-управление).
+
+**Играть:** https://bdulink-code.github.io/Baikal_TowerDefence_Bilikto/
+
+## Механика
+- 3 башни: Лучник (быстрый урон), Ледяной страж (заморозка), Огненный котёл (урон по площади)
+- 15 волн, босс каждую 5-ю, апгрейды башен до 3 уровня
+- Перетаскивай карты башен на поле, защищай нерпу 🦭
+
+## Технологии
+Vanilla JS (ES-модули), Canvas 2D, WebAudio (весь звук синтезирован кодом), AI-арт (Higgsfield nano banana).
+
+Сделано с Claude за один день.
