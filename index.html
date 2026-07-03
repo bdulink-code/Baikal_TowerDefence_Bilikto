@@ -42,6 +42,8 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 @keyframes pulse { 0%,100%{ box-shadow:0 4px 14px rgba(255,210,60,.3);} 50%{ box-shadow:0 0 26px rgba(255,210,60,.85); } }
 #ffBtn, #sndBtn { background:#22314f; color:#e8f0ff; font-size:17px; }
 #ffBtn.on { background:#4caf78; color:#04140b; }
+#ffBtn { display:flex; align-items:center; justify-content:center; gap:3px; }
+#ffBtn .x2l { font-weight:800; font-size:13px; letter-spacing:.3px; }
 #cards { display:flex; gap:6px; }
 .tcard {
   flex:1; background:#1d2a45; border-radius:14px; padding:8px 4px 7px;
@@ -121,7 +123,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
     <div id="cards"></div>
     <button id="waveBtn"></button>
     <div id="quick">
-      <button id="ffBtn"><img src="./assets/ff.png" alt="x2"></button>
+      <button id="ffBtn"><img src="./assets/ff.png" alt=""><span class="x2l">x2</span></button>
       <button id="sndBtn"><img src="./assets/snd.png" alt="звук"></button>
     </div>
   </div>
@@ -147,7 +149,10 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-function gameEvent(name){ try{ if(YM_ID && window.ym) ym(YM_ID,'reachGoal',name); }catch(e){} }
+function gameEvent(name,params){ try{ if(YM_ID && window.ym) ym(YM_ID,'reachGoal',name,params||{}); }catch(e){} }
+setTimeout(()=>gameEvent('session_3min'),180000);
+setTimeout(()=>gameEvent('session_10min'),600000);
+window.addEventListener('appinstalled',()=>gameEvent('pwa_install'));
 
 
 // ================= ЗВУК =================
@@ -420,6 +425,7 @@ upBtn.onclick=()=>{
   const cost=upgradeCost(tw);
   if(money<cost||tw.lvl>=3) return;
   money-=cost; tw.lvl++; SND.up();
+  window._fu||(window._fu=1,gameEvent('tower_upgrade'));
   ring(offX+(tw.c+0.5)*CS, offY+(tw.r+0.5)*CS, '#4caf78', CS*0.8);
   updHud();
 };
@@ -467,7 +473,9 @@ waveBtn.onclick=()=>{
   A(); SND.wave();
   if(tut===2) tutNext(0);
   wave++; waveActive=true;
+  if(wave===3) gameEvent('wave_3');
   if(wave===5) gameEvent('wave_5');
+  if(wave===15) gameEvent('wave_15');
   if(wave===10) gameEvent('wave_10');
   spawnQ=buildWave(wave); spawnT=0.4;
   updHud();
@@ -475,7 +483,7 @@ waveBtn.onclick=()=>{
 
 function endGame(win){
   state=win?'win':'over';
-  gameEvent(win?'win':'lose');
+  gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives});
   win?SND.win():SND.lose();
   overlay.classList.remove('hidden');
   $('top').classList.add('hidden'); bar.classList.add('hidden'); hideTwMenu();
@@ -613,6 +621,7 @@ function hit(p, ex, ey){
     dmgNum(ex,ey,p.dmg, p.type==='fire'?'#ff9a5c':p.type==='frost'?'#a8e4ff':'#ffe08a');
     if(p.slow){ e.slow=1.6; ring(ex,ey,'#7fd8ff',CS*0.4); }
     if(e.hp<=0 && enemies.includes(e)){
+      window._fk||(window._fk=1,gameEvent('first_kill'));
       const [x,y,a]=posAt(e.d);
       corpses.push({x,y,a,type:e.type,t:0.5,max:0.5});
       puff(x,y,ENEMIES[e.type].col,6,170);

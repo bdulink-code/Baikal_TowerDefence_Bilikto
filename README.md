@@ -1,6 +1,6 @@
 # 🏹 Оборона Байкала / Baikal Tower Defense
 
-Tower defense про защиту нерпы и Байкала от орды роботов. Чистый HTML5/Canvas + WebAudio, без движков и зависимостей. Оптимизирована под мобильные (drag&drop башен, тач-управление).
+Tower defense про защиту нерпы и Байкала от нашествия роботов. Чистый HTML5/Canvas + WebAudio, без движков и зависимостей. Оптимизирована под мобильные (drag&drop башен, тач-управление).
 
 **Играть:** https://bdulink-code.github.io/Baikal_TowerDefence_Bilikto/
 
