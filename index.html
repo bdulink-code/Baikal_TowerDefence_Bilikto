@@ -114,6 +114,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #ovStats b { color:#fff; text-align:right; font-weight:800; }
 #ovBtns { display:flex; flex-direction:column; gap:10px; align-items:center; }
 #overlay #shareBtn { display:none; background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
+#ver { position:absolute; bottom:calc(10px + env(safe-area-inset-bottom,0)); right:14px; font-size:11px; color:#3d4c6e; }
 #overlay #stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
 #nerpaBtn { position:relative; }
 #nerpaBtn.cd img { filter:grayscale(1) brightness(.5); }
@@ -170,6 +171,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
     <button id="stormBtn"></button>
     <button id="shareBtn"></button>
   </div>
+  <div id="ver">v1.2</div>
 </div>
 
 <script type="module">
@@ -188,6 +190,7 @@ function gameEvent(name,params){ try{ if(YM_ID && window.ym) ym(YM_ID,'reachGoal
 setTimeout(()=>gameEvent('session_3min'),180000);
 setTimeout(()=>gameEvent('session_10min'),600000);
 window.addEventListener('appinstalled',()=>gameEvent('pwa_install'));
+document.addEventListener('pointerdown',()=>{ try{ if(ac && ac.state!=='running') ac.resume(); }catch(e){} }, true);
 
 
 // ================= ЗВУК =================
@@ -302,7 +305,7 @@ function resize(){
     }
   }catch(e){}
 }
-addEventListener('resize',resize); addEventListener('orientationchange',resize); resize();
+addEventListener('resize',resize); addEventListener('orientationchange',()=>{ resize(); setTimeout(resize,120); setTimeout(resize,400); }); resize();
 
 function posAt(d){
   let acc=0;
