@@ -116,6 +116,8 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #ovStars .off { color:#2c3a58; text-shadow:none; }
 #ovStats { display:grid; grid-template-columns:auto auto; gap:7px 22px; font-size:14.5px; color:#9fb2d6; margin-bottom:22px; }
 #ovStats b { color:#fff; text-align:right; font-weight:800; }
+#ovRecord { margin-top:14px; font-size:14px; color:#ffd23c; letter-spacing:.5px; min-height:18px; }
+#ovRecord.new { animation:hintBob 1.4s infinite; }
 #ovBtns { display:flex; flex-direction:column; gap:10px; align-items:center; }
 #overlay #shareBtn { display:none; background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; }
@@ -175,7 +177,8 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
     <button id="stormBtn"></button>
     <button id="shareBtn"></button>
   </div>
-  <div id="ver">v1.4</div>
+  <div id="ovRecord"></div>
+  <div id="ver">v1.5</div>
 </div>
 
 <script type="module">
@@ -380,6 +383,15 @@ function reset(){
 }
 function localStorage_ok(){ try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t'); return true; }catch(e){ return false; } }
 if(localStorage_ok() && localStorage.getItem('bk_storm')==='1'){ stormUnlocked=true; }
+function bestGet(storm){ if(!localStorage_ok()) return 0; return parseInt(localStorage.getItem(storm?'bk_best_storm':'bk_best')||'0',10)||0; }
+function bestSet(storm,w){ if(localStorage_ok()) try{ localStorage.setItem(storm?'bk_best_storm':'bk_best',String(w)); }catch(e){} }
+function menuRecordLine(){
+  const n=bestGet(false), s=bestGet(true);
+  let out=[];
+  if(n>0) out.push(STR.record.replace('{w}',n));
+  if(s>0) out.push(STR.recordStorm.replace('{w}',s));
+  return out.join('   ');
+}
 
 // ================= UI =================
 const $=id=>document.getElementById(id);
@@ -390,6 +402,7 @@ const moneyEl=$('money'), livesEl=$('lives'), waveEl=$('wave'),
 $('lblMoney').textContent=STR.hudMoney; $('lblLives').textContent=STR.hudLives; $('lblWave').textContent=STR.hudWave;
 $('ovT1').textContent=STR.title1; $('ovT2').textContent=STR.title2;
 $('ovP').textContent=STR.intro; $('startBtn').textContent=STR.start;
+$('ovRecord').textContent=menuRecordLine();
 if(stormUnlocked){ $('stormBtn').textContent=STR.storm; $('stormBtn').style.display='block'; }
 
 function updTut(){
@@ -600,6 +613,11 @@ function endGame(win){
   state=win?'win':'over';
   gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives,storm:stormMode?1:0});
   gameEvent(win?'game_win':'game_lose',{wave:wave,storm:stormMode?1:0});
+  const reached=win?MAXWAVE:wave, prevBest=bestGet(stormMode), isNew=reached>prevBest;
+  if(isNew) bestSet(stormMode,reached);
+  const rc=$('ovRecord');
+  rc.textContent=isNew?STR.recordNew.replace('{w}',reached):(stormMode?STR.recordStorm:STR.record).replace('{w}',Math.max(prevBest,reached));
+  rc.classList.toggle('new',isNew);
   win?SND.win():SND.lose();
   overlay.classList.remove('hidden');
   $('top').classList.add('hidden'); bar.classList.add('hidden'); hideTwMenu();
@@ -612,7 +630,7 @@ function endGame(win){
   }
   else { $('ovT1').textContent=STR.loseT1; $('ovT2').textContent=STR.loseT2; $('ovP').textContent=STR.loseP.replace('{w}',wave); }
   // звёзды (только при победе)
-  const maxL=stormMode?10:20;
+  const maxL=stormMode?5:10;
   const nStars=win?(lives>=maxL?3:lives>=maxL*0.6?2:1):0;
   $('ovStars').innerHTML = win ? [1,2,3].map(i=>'<span class="'+(i<=nStars?'':'off')+'">★</span>').join('') : '';
   // статистика
