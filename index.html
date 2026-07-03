@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0e1626">
 <title>Оборона Байкала</title>
 <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
+<link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
 <meta name="theme-color" content="#141b2c">
 <meta property="og:title" content="Оборона Байкала — tower defense">
@@ -194,6 +195,7 @@ if(YM_ID){
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
 function gameEvent(name,params){ try{ if(YM_ID && window.ym) ym(YM_ID,'reachGoal',name,params||{}); }catch(e){} }
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
 setTimeout(()=>gameEvent('session_3min'),180000);
 setTimeout(()=>gameEvent('session_10min'),600000);
 window.addEventListener('appinstalled',()=>gameEvent('pwa_install'));
