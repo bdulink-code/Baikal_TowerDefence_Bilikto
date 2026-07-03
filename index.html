@@ -194,7 +194,8 @@ window.addEventListener('appinstalled',()=>gameEvent('pwa_install'));
 let ac=null, muted=false;
 function A(){
   if(!ac){ const C=window.AudioContext||window.webkitAudioContext; ac=new C(); }
-  if(ac.state==='suspended') ac.resume();
+  if(ac.state!=='running'){ try{ ac.resume(); }catch(e){} }
+  if(!musStarted) startMusic();
   return ac;
 }
 function tone(f,dur,type='square',vol=0.12,slide=0,delay=0){
@@ -236,6 +237,25 @@ const SND={
   bad(){ tone(180,0.1,'sawtooth',0.08,-60); },
 };
 
+// ================= МУЗЫКА =================
+// Пентатоника (ля-минорная) — основа бурятской музыкальной традиции.
+const MUS_SCALE=[220,261.63,293.66,329.63,392,440,523.25];
+const MUS_MEL=[0,null,2,3,null,4,null,2, 5,null,4,3,2,null,1,null,
+               0,null,2,null,4,5,null,6, 5,null,4,null,2,3,null,null];
+const MUS_BASS=[110,110,98,82.41];
+let musStarted=false, musStep=0;
+function startMusic(){
+  if(musStarted) return; musStarted=true;
+  setInterval(()=>{
+    if(muted || document.hidden || !ac || ac.state!=='running') return;
+    if(musStep%8===0) tone(MUS_BASS[(musStep>>3)%MUS_BASS.length],3.8,'triangle',0.035);
+    const n=MUS_MEL[musStep%MUS_MEL.length];
+    if(n!==null) tone(MUS_SCALE[n],1.4,'sine',0.05);
+    if(musStep%16===8) tone(MUS_SCALE[(musStep>>4)%3]*2,2.2,'sine',0.018);
+    musStep++;
+  },480);
+}
+
 // ================= СЕТКА И ПУТЬ =================
 const COLS = 8, ROWS = 12;
 const PATH_CELLS = [];
@@ -266,12 +286,21 @@ function resize(){
   offX=(W-CS*COLS)/2;
   const availH=H-topPad-botPad;
   offY=topPad+Math.max(0,(availH-CS*ROWS)/2);
+  const oldLen=pathLen||0;
   pathPts=PATH_CELLS.map(([c,r])=>[offX+(c+0.5)*CS, offY+(r+0.5)*CS]);
   segLens=[]; pathLen=0;
   for(let i=0;i<pathPts.length-1;i++){
     const l=Math.hypot(pathPts[i+1][0]-pathPts[i][0], pathPts[i+1][1]-pathPts[i][1]);
     segLens.push(l); pathLen+=l;
   }
+  // при смене ориентации путь меняет длину — переносим прогресс врагов пропорционально
+  try{
+    if(oldLen>0 && pathLen>0 && Math.abs(oldLen-pathLen)>0.5){
+      const k=pathLen/oldLen;
+      enemies.forEach(e=>{ e.d*=k; });
+      projs.length=0; parts.length=0;
+    }
+  }catch(e){}
 }
 addEventListener('resize',resize); addEventListener('orientationchange',resize); resize();
 
@@ -1224,6 +1253,10 @@ const STEP=1000/60;
 let acc=0, last=performance.now(), paused=false, frames=0, fpsAt=last;
 addEventListener('blur',()=>paused=true);
 addEventListener('focus',()=>{ paused=false; last=performance.now(); });
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ paused=true; }
+  else { paused=false; last=performance.now(); if(ac && ac.state!=='running'){ try{ ac.resume(); }catch(e){} } }
+});
 const dev=new URLSearchParams(location.search).has('dev');
 if(dev) $('dev').style.display='block';
 
