@@ -90,6 +90,16 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #overlay h1 { font-size:32px; font-weight:900; line-height:1.15; margin-bottom:10px; }
 #overlay p { color:#9fb2d6; font-size:15px; line-height:1.55; max-width:330px; margin-bottom:22px; }
 #overlay button { background:#ffd23c; color:#1a1400; font-size:18px; padding:14px 42px; box-shadow:0 6px 20px rgba(255,210,60,.35); }
+#ovStars { font-size:36px; letter-spacing:8px; color:#ffd23c; margin-bottom:12px; text-shadow:0 4px 18px rgba(255,210,60,.5); }
+#ovStars .off { color:#2c3a58; text-shadow:none; }
+#ovStats { display:grid; grid-template-columns:auto auto; gap:7px 22px; font-size:14.5px; color:#9fb2d6; margin-bottom:22px; }
+#ovStats b { color:#fff; text-align:right; font-weight:800; }
+#ovBtns { display:flex; flex-direction:column; gap:10px; align-items:center; }
+#shareBtn { background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
+#stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
+#nerpaBtn { position:relative; }
+#nerpaBtn.cd img { filter:grayscale(1) brightness(.5); }
+#nerpaBtn .cdt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:#fff; text-shadow:0 1px 4px #000; pointer-events:none; }
 .hidden { display:none !important; }
 #toast {
   position:fixed; top:14%; left:50%; transform:translateX(-50%); z-index:8;
@@ -123,6 +133,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
     <div id="cards"></div>
     <button id="waveBtn"></button>
     <div id="quick">
+      <button id="nerpaBtn"><img src="./assets/nerpa.png" alt=""><span class="cdt" id="nerpaCdT"></span></button>
       <button id="ffBtn"><img src="./assets/ff.png" alt=""><span class="x2l">x2</span></button>
       <button id="sndBtn"><img src="./assets/snd.png" alt="звук"></button>
     </div>
@@ -134,7 +145,13 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 <div id="overlay">
   <h1><span id="ovT1"></span><br><span id="ovT2" style="color:#ffd23c"></span></h1>
   <p id="ovP"></p>
-  <button id="startBtn"></button>
+  <div id="ovStars"></div>
+  <div id="ovStats"></div>
+  <div id="ovBtns">
+    <button id="startBtn"></button>
+    <button id="stormBtn"></button>
+    <button id="shareBtn"></button>
+  </div>
 </div>
 
 <script type="module">
@@ -270,18 +287,23 @@ const ENEMIES = {
 const OUT='#141b2c';
 const MAXWAVE=15;
 
+let stormMode=false, nerpaCd=0, nerpaCdShown=-1, stats={kills:0,gold:0,t0:0}, lastWin=false;
+let stormUnlocked=false;
 let state='menu', money, lives, wave, waveActive, towers, enemies, projs, parts, corpses, dmgTxt, spawnQ, spawnT, selCard=null, selTw=null, gs=1, gt=0, badCell=null;
 let drag=null; // {type, x, y}
 let tut=0;     // 1 = подсказка "перетащи", 2 = подсказка "жми волна", 0 = выкл
 
 function reset(){
-  money=180; lives=20; wave=0; waveActive=false;
+  money=stormMode?150:180; lives=stormMode?10:20; wave=0; waveActive=false;
+  nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd');
+  stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
   tut = 1;
   ffBtn.classList.remove('on');
   renderCards(); updTut();
 }
 function localStorage_ok(){ try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t'); return true; }catch(e){ return false; } }
+if(localStorage_ok() && localStorage.getItem('bk_storm')==='1'){ stormUnlocked=true; }
 
 // ================= UI =================
 const $=id=>document.getElementById(id);
@@ -292,6 +314,7 @@ const moneyEl=$('money'), livesEl=$('lives'), waveEl=$('wave'),
 $('lblMoney').textContent=STR.hudMoney; $('lblLives').textContent=STR.hudLives; $('lblWave').textContent=STR.hudWave;
 $('ovT1').textContent=STR.title1; $('ovT2').textContent=STR.title2;
 $('ovP').textContent=STR.intro; $('startBtn').textContent=STR.start;
+if(stormUnlocked){ $('stormBtn').textContent=STR.storm; $('stormBtn').style.display='block'; }
 
 function updTut(){
   hintEl.classList.remove('show'); waveBtn.classList.remove('pulse');
@@ -436,6 +459,16 @@ sellBtn.onclick=()=>{
   hideTwMenu(); updHud();
 };
 ffBtn.onclick=()=>{ A(); gs=gs===1?2:1; ffBtn.classList.toggle('on',gs===2); };
+SND.nerpa=()=>{ [880,660,440].forEach((f,i)=>tone(f,0.16,'sine',0.12,-60,i*0.07)); noiseS(0.25,0.1,2200); };
+$('nerpaBtn').onclick=()=>{
+  if(state!=='play'||nerpaCd>0||!enemies.length) return;
+  A(); SND.nerpa();
+  nerpaCd=40; nerpaCdShown=-1;
+  enemies.forEach(e=>{ e.frz=2.5; });
+  const [nx,ny]=pathPts[pathPts.length-1];
+  ring(nx,ny,'#7fd8ff',CS*2.2); ring(nx,ny,'#aef7e8',CS*3.4);
+  window._nu||(window._nu=1,gameEvent('nerpa_used'));
+};
 sndBtn.onclick=()=>{ muted=!muted; sndBtn.classList.toggle('mutedBtn',muted); if(!muted){ A(); SND.coin(); } };
 
 cv.addEventListener('pointerup',e=>{
@@ -458,8 +491,9 @@ cv.addEventListener('pointerup',e=>{
 function buildWave(n){
   const q=[];
   const add=(type,cnt,gap)=>{ for(let i=0;i<cnt;i++) q.push({type,gap}); };
-  const m=1+0.28*n+0.035*n*n;
-  if(n%5===0){ add('armored',4,1.1); add('boss',1,2); add('scout',8,0.4); }
+  const m=(1+0.28*n+0.035*n*n)*(stormMode?1.7:1);
+  if(n===MAXWAVE){ add('warrior',6,0.6); add('armored',6,1.0); q.push({type:'boss',gap:2.6,mega:true}); add('scout',12,0.33); }
+  else if(n%5===0){ add('armored',4,1.1); add('boss',1,2); add('scout',8,0.4); }
   else {
     add('scout',5+n,0.62);
     if(n>=2) add('warrior',2+n,0.85);
@@ -483,22 +517,56 @@ waveBtn.onclick=()=>{
 
 function endGame(win){
   state=win?'win':'over';
-  gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives});
+  gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives,storm:stormMode?1:0});
   win?SND.win():SND.lose();
   overlay.classList.remove('hidden');
   $('top').classList.add('hidden'); bar.classList.add('hidden'); hideTwMenu();
   hintEl.classList.remove('show');
-  if(win){ $('ovT1').textContent=STR.winT1; $('ovT2').textContent=STR.winT2; $('ovP').textContent=STR.winP; }
+  if(win){
+    $('ovT1').textContent=STR.winT1; $('ovT2').textContent=STR.winT2;
+    $('ovP').textContent=stormMode?STR.winStorm:STR.winP;
+    if(localStorage_ok()){ localStorage.setItem('bk_storm','1'); }
+    stormUnlocked=true;
+  }
   else { $('ovT1').textContent=STR.loseT1; $('ovT2').textContent=STR.loseT2; $('ovP').textContent=STR.loseP.replace('{w}',wave); }
+  // звёзды (только при победе)
+  const maxL=stormMode?10:20;
+  const nStars=win?(lives>=maxL?3:lives>=maxL*0.6?2:1):0;
+  $('ovStars').innerHTML = win ? [1,2,3].map(i=>'<span class="'+(i<=nStars?'':'off')+'">★</span>').join('') : '';
+  // статистика
+  const secs=Math.round((performance.now()-stats.t0)/1000);
+  const tm=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
+  $('ovStats').innerHTML =
+    '<span>'+STR.statKills+'</span><b>'+stats.kills+'</b>'+
+    '<span>'+STR.statGold+'</span><b>'+stats.gold+' ₮</b>'+
+    '<span>'+STR.statLives+'</span><b>♥ '+lives+'/'+maxL+'</b>'+
+    '<span>'+STR.statTime+'</span><b>'+tm+'</b>';
   $('startBtn').textContent=STR.again;
+  $('shareBtn').textContent=STR.share; $('shareBtn').style.display='block';
+  $('stormBtn').textContent=STR.storm;
+  $('stormBtn').style.display=stormUnlocked?'block':'none';
+  lastWin=win;
 }
-$('startBtn').onclick=()=>{
-  A();
-  gameEvent(state==='menu'?'game_start':'replay');
+function launch(storm){
+  stormMode=storm;
   reset(); state='play';
   overlay.classList.add('hidden');
   $('top').classList.remove('hidden'); bar.classList.remove('hidden');
+  if(storm) showToast(STR.stormToast);
   updHud(); updTut();
+}
+$('stormBtn').onclick=()=>{ A(); gameEvent('storm_start'); launch(true); };
+$('shareBtn').onclick=async ()=>{
+  A(); gameEvent('share_click');
+  const txt=(lastWin?STR.shareWin.replace('{k}',stats.kills):STR.shareLose.replace('{w}',wave));
+  const url=location.href.split('?')[0];
+  if(navigator.share){ try{ await navigator.share({title:'Оборона Байкала', text:txt, url:url}); }catch(e){} }
+  else { try{ await navigator.clipboard.writeText(txt+' '+url); showToast(STR.shared); }catch(e){} }
+};
+$('startBtn').onclick=()=>{
+  A();
+  gameEvent(state==='menu'?'game_start':'replay');
+  launch(false);
 };
 
 // ================= ЭФФЕКТЫ =================
@@ -524,13 +592,14 @@ function update(dtMs){
     if(spawnT<=0){
       const s=spawnQ.shift();
       const b=ENEMIES[s.type];
-      enemies.push({type:s.type,d:0,hp:b.hp*s.hpMul,maxhp:b.hp*s.hpMul,sp:b.sp,slow:0,ph:Math.random()*7,flash:0});
+      const hp=b.hp*s.hpMul*(s.mega?2.2:1);
+      enemies.push({type:s.type,d:0,hp:hp,maxhp:hp,sp:b.sp*(stormMode?1.15:1),slow:0,frz:0,mega:!!s.mega,ph:Math.random()*7,flash:0});
       spawnT=s.gap;
     }
   } else if(waveActive && enemies.length===0){
     waveActive=false;
     const bonus=40+wave*8;
-    money+=bonus; SND.coin(); showToast('+'+bonus+' ₮ '+STR.waveBonus);
+    money+=bonus; stats.gold+=bonus; SND.coin(); showToast('+'+bonus+' ₮ '+STR.waveBonus);
     if(wave>=MAXWAVE){ endGame(true); return; }
     updHud();
   }
@@ -539,16 +608,21 @@ function update(dtMs){
     const e=enemies[i];
     if(e.slow>0) e.slow-=dt;
     if(e.flash>0) e.flash-=dt;
-    e.d+=e.sp*(e.slow>0?0.45:1)*(CS/44)*dt;
+    if(e.frz>0){ e.frz-=dt; } else e.d+=e.sp*(e.slow>0?0.45:1)*(CS/44)*dt;
     if(e.d>=pathLen){
       enemies.splice(i,1);
       SND.leak();
-      lives-=(e.type==='boss'?5:1);
+      lives-=(e.type==='boss'?(e.mega?10:5):1);
       if(lives<=0){ lives=0; updHud(); endGame(false); return; }
       updHud();
     }
   }
 
+  if(nerpaCd>0){
+    nerpaCd=Math.max(0,nerpaCd-dt);
+    const sec=Math.ceil(nerpaCd);
+    if(sec!==nerpaCdShown){ nerpaCdShown=sec; $('nerpaCdT').textContent=sec||''; $('nerpaBtn').classList.toggle('cd',sec>0); }
+  }
   towers.forEach(tw=>{
     tw.cd-=dt;
     if(tw.anim>0) tw.anim-=dt;
@@ -627,7 +701,8 @@ function hit(p, ex, ey){
       puff(x,y,ENEMIES[e.type].col,6,170);
       puff(x,y,'#c8d2e0',5,140); // болтики
       SND.die();
-      money+=ENEMIES[e.type].rw;
+      stats.kills++; stats.gold+=ENEMIES[e.type].rw*(e.mega?3:1);
+      money+=ENEMIES[e.type].rw*(e.mega?3:1);
       enemies.splice(enemies.indexOf(e),1);
       updHud();
     }
@@ -1025,13 +1100,32 @@ function render(){
 
   enemies.forEach(e=>{
     const [x,y,a]=posAt(e.d), b=ENEMIES[e.type];
-    drawBot(x,y,a,e.d/CS+e.ph,b,b.sz,e.slow>0,e.type,e.flash);
-    const w=CS*b.sz*1.7;
+    const esz=b.sz*(e.mega?1.4:1);
+    drawBot(x,y,a,e.d/CS+e.ph,b,esz,e.slow>0||e.frz>0,e.type,e.flash);
+    const w=CS*esz*1.7;
     ctx.fillStyle='#0a0e18';
-    ctx.beginPath(); ctx.roundRect(x-w/2,y-CS*b.sz-13,w,5,2.5); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-w/2,y-CS*esz-13,w,5,2.5); ctx.fill();
     ctx.fillStyle=e.hp/e.maxhp>0.4?'#6fe08a':'#ff6a6a';
-    ctx.beginPath(); ctx.roundRect(x-w/2,y-CS*b.sz-13,w*Math.max(0,e.hp/e.maxhp),5,2.5); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-w/2,y-CS*esz-13,w*Math.max(0,e.hp/e.maxhp),5,2.5); ctx.fill();
   });
+
+  // HP-бар финального босса
+  (function(){
+    const mb=enemies.find(e=>e.mega);
+    if(!mb) return;
+    const bw=Math.min(W-40,420), bx=(W-bw)/2, by=64;
+    ctx.fillStyle='rgba(10,14,24,.85)';
+    ctx.beginPath(); ctx.roundRect(bx-4,by-4,bw+8,22,8); ctx.fill();
+    ctx.fillStyle='#3a1522';
+    ctx.beginPath(); ctx.roundRect(bx,by,bw,14,6); ctx.fill();
+    const fr=Math.max(0,mb.hp/mb.maxhp);
+    const g=ctx.createLinearGradient(bx,0,bx+bw,0);
+    g.addColorStop(0,'#ff4d7d'); g.addColorStop(1,'#d05070');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.roundRect(bx,by,bw*fr,14,6); ctx.fill();
+    ctx.fillStyle='#ffd7e4'; ctx.font='800 11px RussoOne, sans-serif'; ctx.textAlign='center';
+    ctx.fillText(STR.bossName, W/2, by-8);
+  })();
 
   projs.forEach(p=>{
     if(p.type==='archer'){
