@@ -356,6 +356,8 @@ const ENEMIES = {
   scout:{hp:26, sp:78, rw:6, sz:.38, col:'#7dc9b8', dark:'#4a8f80', eye:'#aef7e8'},
   warrior:{hp:64, sp:52, rw:10, sz:.44, col:'#e8a052', dark:'#a86a28', eye:'#ffe9a8'},
   armored:{hp:150, sp:36, rw:18, sz:.50, col:'#93a2c0', dark:'#5d6c8e', eye:'#d8e6ff'},
+  runner:{hp:20, sp:118, rw:5, sz:.34, col:'#e8d452', dark:'#a8961f', eye:'#fffbc0'},
+  tank:{hp:430, sp:21, rw:34, sz:.58, col:'#6a8f7a', dark:'#3f5c4a', eye:'#c0ffd8'},
   boss:{hp:900, sp:28, rw:120, sz:.70, col:'#d05070', dark:'#8f2f4c', eye:'#ffb3c8'},
 };
 const OUT='#141b2c';
@@ -368,7 +370,7 @@ let drag=null; // {type, x, y}
 let tut=0;     // 1 = подсказка "перетащи", 2 = подсказка "жми волна", 0 = выкл
 
 function reset(){
-  money=stormMode?150:180; lives=stormMode?10:20; wave=0; waveActive=false;
+  money=stormMode?120:140; lives=stormMode?5:10; wave=0; waveActive=false;
   nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
@@ -566,15 +568,18 @@ cv.addEventListener('pointerup',e=>{
 function buildWave(n){
   const q=[];
   const add=(type,cnt,gap)=>{ for(let i=0;i<cnt;i++) q.push({type,gap}); };
-  const m=(1+0.28*n+0.035*n*n)*(stormMode?1.7:1);
-  if(n===MAXWAVE){ add('warrior',6,0.6); add('armored',6,1.0); q.push({type:'boss',gap:2.6,mega:true}); add('scout',12,0.33); }
-  else if(n%5===0){ add('armored',4,1.1); add('boss',1,2); add('scout',8,0.4); }
+  const m=(1.32*Math.pow(1.2,n-1))*(stormMode?1.5:1);
+  const spM=Math.min(1+0.02*(n-1),1.35);
+  if(n===MAXWAVE){ add('warrior',6,0.6); add('armored',6,1.0); add('runner',6,0.3); q.push({type:'boss',gap:2.6,mega:true}); add('scout',12,0.33); }
+  else if(n%5===0){ add('armored',4,1.1); add('boss',1,2); add('runner',4,0.35); add('scout',8,0.4); }
   else {
     add('scout',5+n,0.62);
     if(n>=2) add('warrior',2+n,0.85);
     if(n>=4) add('armored',Math.floor(n/2),1.2);
+    if(n>=6) add('runner',Math.max(3,n-3),0.42);
+    if(n>=8) add('tank',Math.floor((n-6)/2),1.7);
   }
-  q.forEach(s=>s.hpMul=m);
+  q.forEach(s=>{ s.hpMul=m; s.spMul=spM; });
   return q;
 }
 waveBtn.onclick=()=>{
@@ -670,12 +675,12 @@ function update(dtMs){
       const s=spawnQ.shift();
       const b=ENEMIES[s.type];
       const hp=b.hp*s.hpMul*(s.mega?2.2:1);
-      enemies.push({type:s.type,d:0,hp:hp,maxhp:hp,sp:b.sp*(stormMode?1.15:1),slow:0,frz:0,mega:!!s.mega,ph:Math.random()*7,flash:0});
+      enemies.push({type:s.type,d:0,hp:hp,maxhp:hp,sp:b.sp*(s.spMul||1)*(stormMode?1.15:1),slow:0,frz:0,mega:!!s.mega,ph:Math.random()*7,flash:0});
       spawnT=s.gap;
     }
   } else if(waveActive && enemies.length===0){
     waveActive=false;
-    const bonus=40+wave*8;
+    const bonus=Math.round((40+wave*8)*(stormMode?0.75:1));
     money+=bonus; stats.gold+=bonus; SND.coin(); showToast('+'+bonus+' ₮ '+STR.waveBonus);
     if(wave>=MAXWAVE){ endGame(true); return; }
     updHud();
@@ -689,7 +694,7 @@ function update(dtMs){
     if(e.d>=pathLen){
       enemies.splice(i,1);
       SND.leak();
-      lives-=(e.type==='boss'?(e.mega?10:5):1);
+      lives-=(e.type==='boss'?(e.mega?10:5):(e.type==='tank'?2:1));
       if(lives<=0){ lives=0; updHud(); endGame(false); return; }
       updHud();
     }
@@ -778,8 +783,10 @@ function hit(p, ex, ey){
       puff(x,y,ENEMIES[e.type].col,6,170);
       puff(x,y,'#c8d2e0',5,140); // болтики
       SND.die();
-      stats.kills++; stats.gold+=ENEMIES[e.type].rw*(e.mega?3:1);
-      money+=ENEMIES[e.type].rw*(e.mega?3:1);
+      stats.kills++;
+      const rw=Math.max(1,Math.round(ENEMIES[e.type].rw*Math.pow(0.95,wave-1)*(stormMode?0.75:1)))*(e.mega?3:1);
+      stats.gold+=rw;
+      money+=rw;
       enemies.splice(enemies.indexOf(e),1);
       updHud();
     }
@@ -803,7 +810,7 @@ function drawBot(x,y,ang,ph,b,scale,slowed,type,flash){
   ctx.lineJoin='round'; ctx.lineCap='round';
   const lw=Math.max(2,s*0.08);
 
-  if(type==='armored'){
+  if(type==='armored'||type==='tank'){
     // танк на гусеницах
     ctx.fillStyle=darkCol;
     ctx.beginPath(); ctx.roundRect(-s*0.42,s*0.22,s*0.84,s*0.3,s*0.15); ctx.fill();
@@ -856,7 +863,7 @@ function drawBot(x,y,ang,ph,b,scale,slowed,type,flash){
   ctx.restore();
 
   // щит-плита у танка
-  if(type==='armored'){
+  if(type==='armored'||type==='tank'){
     ctx.fillStyle='#7d8db0';
     ctx.beginPath(); ctx.roundRect(-s*0.5,-s*0.22,s*0.14,s*0.46,s*0.05); ctx.fill();
     ctx.strokeStyle=OUT; ctx.lineWidth=lw; ctx.stroke();
