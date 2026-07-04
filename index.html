@@ -304,15 +304,15 @@ function loadMusic(){
   if(MUSF.loaded||MUSF.failed||MUSF.loading||!ac) return;
   MUSF.loading=true;
   const get=n=>fetch('./assets/'+n+'.m4a').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(b=>ac.decodeAudioData(b));
-  Promise.all([get('ambient'),get('battle'),get('nerpa_bark'),get('ice_crack')]).then(([a,b,nb,ic])=>{
-    MUSF.amb=a; MUSF.btl=b; MUSF.bark=nb; MUSF.crack=ic; MUSF.loaded=true;
-    musSwitch(state==='play'?'btl':'amb');
+  Promise.all([get('ambient'),get('battle'),get('nerpa_bark'),get('ice_crack'),get('storm'),get('win_jingle'),get('lose_jingle')]).then(([a,b,nb,ic,st,wj,lj])=>{
+    MUSF.amb=a; MUSF.btl=b; MUSF.bark=nb; MUSF.crack=ic; MUSF.storm=st; MUSF.winJ=wj; MUSF.loseJ=lj; MUSF.loaded=true;
+    musSwitch(state==='play'?(stormMode?'storm':'btl'):'amb');
   }).catch(()=>{ MUSF.failed=true; });
 }
 function musSwitch(name){
   if(!MUSF.loaded||!ac) return;
   if(MUSF.curName===name) return;
-  const buf=name==='btl'?MUSF.btl:MUSF.amb; if(!buf) return;
+  const buf=name==='btl'?MUSF.btl:(name==='storm'?MUSF.storm:MUSF.amb); if(!buf) return;
   const g=musMaster(), t=ac.currentTime;
   if(MUSF.cur){
     const old=MUSF.cur, og=MUSF.curG;
@@ -676,8 +676,10 @@ function endGame(win){
   const rc=$('ovRecord');
   rc.textContent=isNew?STR.recordNew.replace('{w}',reached):(stormMode?STR.recordStorm:STR.record).replace('{w}',Math.max(prevBest,reached));
   rc.classList.toggle('new',isNew);
-  musSwitch('amb');
-  win?SND.win():SND.lose();
+  if(MUSF.cur){ try{ const mt=ac.currentTime; MUSF.curG.gain.setValueAtTime(MUSF.curG.gain.value,mt); MUSF.curG.gain.linearRampToValueAtTime(0,mt+0.5); const old=MUSF.cur; setTimeout(()=>{try{old.stop()}catch(e){}},600); MUSF.cur=null; MUSF.curName=''; }catch(e){} }
+  if(win&&MUSF.winJ){ playBuf(MUSF.winJ,1); setTimeout(()=>{ if(state!=='play') musSwitch('amb'); },4000); }
+  else if(!win&&MUSF.loseJ){ playBuf(MUSF.loseJ,1); setTimeout(()=>{ if(state!=='play') musSwitch('amb'); },4000); }
+  else { musSwitch('amb'); win?SND.win():SND.lose(); }
   overlay.classList.remove('hidden');
   $('top').classList.add('hidden'); bar.classList.add('hidden'); hideTwMenu();
   hintEl.classList.remove('show');
@@ -709,7 +711,7 @@ function endGame(win){
 function launch(storm){
   stormMode=storm;
   reset(); state='play';
-  musSwitch('btl');
+  musSwitch(storm?'storm':'btl');
   overlay.classList.add('hidden');
   $('top').classList.remove('hidden'); bar.classList.remove('hidden');
   if(storm) showToast(STR.stormToast);
