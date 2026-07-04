@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0e1626">
 <title>Оборона Байкала</title>
+<link rel="icon" href="./favicon.ico" sizes="32x32 16x16">
 <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
@@ -142,7 +143,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 <div id="dev"></div>
 
 <div id="top" class="hidden">
-  <div><span class="lbl" id="lblMoney"></span><span id="money">0</span> ₮</div>
+  <div><span class="lbl" id="lblMoney"></span><span id="money">0</span> 🐟</div>
   <div><span class="lbl" id="lblLives"></span>♥ <span id="lives">0</span></div>
   <div><span class="lbl" id="lblWave"></span><span id="wave">0</span>/15</div>
 </div>
@@ -439,7 +440,7 @@ function renderCards(){
     const t=TOWERS[k];
     const d=document.createElement('div');
     d.className='tcard';
-    d.innerHTML='<img class="ico" src="./assets/'+k+'.png" alt=""><span class="nm">'+STR.towers[k].nm+'</span><span class="pr">'+t.cost+' ₮</span>';
+    d.innerHTML='<img class="ico" src="./assets/'+k+'.png" alt=""><span class="nm">'+STR.towers[k].nm+'</span><span class="pr">'+t.cost+' 🐟</span>';
     // drag&drop с карты
     d.addEventListener('pointerdown',e=>{
       A();
@@ -524,8 +525,8 @@ function showTwMenu(tw){
   twTitle.textContent=base.ico+' '+STR.towers[tw.type].nm+' · '+STR.lvl+' '+tw.lvl;
   const upCost=upgradeCost(tw);
   if(tw.lvl>=3){ upBtn.textContent=STR.maxLvl; upBtn.disabled=true; }
-  else { upBtn.textContent=STR.upgrade+' '+upCost+'₮'; upBtn.disabled=money<upCost; }
-  sellBtn.textContent=STR.sell+' +'+sellValue(tw)+'₮';
+  else { upBtn.textContent=STR.upgrade+' '+upCost+'🐟'; upBtn.disabled=money<upCost; }
+  sellBtn.textContent=STR.sell+' +'+sellValue(tw)+'🐟';
   twMenu.classList.add('open');
   twMenu.style.bottom=(bar.offsetHeight+6)+'px';
 }
@@ -648,7 +649,7 @@ function endGame(win){
   const tm=Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0');
   $('ovStats').innerHTML =
     '<span>'+STR.statKills+'</span><b>'+stats.kills+'</b>'+
-    '<span>'+STR.statGold+'</span><b>'+stats.gold+' ₮</b>'+
+    '<span>'+STR.statGold+'</span><b>'+stats.gold+' 🐟</b>'+
     '<span>'+STR.statLives+'</span><b>♥ '+lives+'/'+maxL+'</b>'+
     '<span>'+STR.statTime+'</span><b>'+tm+'</b>';
   $('startBtn').textContent=STR.again;
@@ -709,7 +710,7 @@ function update(dtMs){
   } else if(waveActive && enemies.length===0){
     waveActive=false;
     const bonus=Math.round((40+wave*8)*(stormMode?0.75:1));
-    money+=bonus; stats.gold+=bonus; SND.coin(); showToast('+'+bonus+' ₮ '+STR.waveBonus);
+    money+=bonus; stats.gold+=bonus; SND.coin(); showToast('+'+bonus+' 🐟 '+STR.waveBonus);
     if(wave>=MAXWAVE){ endGame(true); return; }
     updHud();
   }
