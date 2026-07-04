@@ -41,7 +41,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
   padding:6px 8px calc(8px + env(safe-area-inset-bottom,0));
 }
 #quick { display:flex; flex-direction:column; gap:6px; justify-content:stretch; }
-#quick button { flex:1; width:48px; border-radius:12px; padding:4px; }
+#quick button { flex:1; width:58px; border-radius:14px; padding:5px; }
 #quick img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
 #quick button.mutedBtn img { filter:grayscale(1) brightness(.55); }
 #barRow { display:flex; gap:8px; align-items:stretch; max-width:520px; margin:0 auto; }
@@ -54,8 +54,8 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #ffBtn, #sndBtn { background:#22314f; color:#e8f0ff; font-size:17px; }
 #ffBtn.on { background:#4caf78; color:#04140b; }
 #ffBtn { display:flex; align-items:center; justify-content:center; gap:3px; }
-#ffBtn .x2l { font-weight:800; font-size:12px; letter-spacing:.2px; }
-#ffBtn img { width:17px; height:17px; flex:0 0 auto; }
+#ffBtn .x2l { font-weight:800; font-size:16px; letter-spacing:.2px; }
+#ffBtn img { width:22px; height:22px; flex:0 0 auto; }
 #cards { display:flex; gap:6px; }
 .tcard {
   flex:1; background:#1d2a45; border-radius:14px; padding:8px 4px 7px;
@@ -124,6 +124,8 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; }
 #overlay #stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
 #nerpaBtn { position:relative; }
+#nerpaBtn.rdy { animation:nerpaRdy 1.6s infinite; }
+@keyframes nerpaRdy { 0%,100%{ box-shadow:0 0 0 rgba(110,220,255,0); } 50%{ box-shadow:0 0 16px rgba(110,220,255,.95); } }
 #nerpaBtn.cd img { filter:grayscale(1) brightness(.5); }
 #nerpaBtn .cdt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:#fff; text-shadow:0 1px 4px #000; pointer-events:none; }
 .hidden { display:none !important; }
@@ -179,7 +181,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5</div>
+  <div id="ver">v1.5.1</div>
 </div>
 
 <script type="module">
@@ -376,7 +378,7 @@ let tut=0;     // 1 = подсказка "перетащи", 2 = подсказ�
 
 function reset(){
   money=stormMode?120:140; lives=stormMode?5:10; wave=0; waveActive=false;
-  nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd');
+  nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd'); $('nerpaBtn').classList.remove('rdy');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
   tut = 1;
@@ -428,6 +430,7 @@ function tutNext(n){ tut=n; updTut(); }
 const IMG={}, UIIMG={};
 const GROUND=new Image(); GROUND.src='./assets/ground.jpg';
 const NERPA=new Image(); NERPA.src='./assets/nerpa.png';
+let NERPAP=null;
 for(const k in TOWERS){ const im=new Image(); im.src='./assets/'+k+'.png'; IMG[k]=im; }
 const cardEls={};
 function renderCards(){
@@ -555,6 +558,7 @@ SND.nerpa=()=>{ [880,660,440].forEach((f,i)=>tone(f,0.16,'sine',0.12,-60,i*0.07)
 $('nerpaBtn').onclick=()=>{
   if(state!=='play'||nerpaCd>0||!enemies.length) return;
   A(); SND.nerpa();
+  $('nerpaBtn').classList.remove('rdy');
   nerpaCd=40; nerpaCdShown=-1;
   enemies.forEach(e=>{ e.frz=2.5; });
   const [nx,ny]=pathPts[pathPts.length-1];
@@ -603,6 +607,10 @@ waveBtn.onclick=()=>{
   if(tut===2) tutNext(0);
   wave++; waveActive=true;
   gameEvent('wave_reached',{wave:wave,storm:stormMode?1:0});
+  if(wave===1){
+    $('nerpaBtn').classList.add('rdy');
+    if(localStorage_ok() && !localStorage.getItem('bk_nh')){ showToast(STR.nerpaHint); try{localStorage.setItem('bk_nh','1');}catch(e){} }
+  }
   if(wave===3) gameEvent('wave_3');
   if(wave===5) gameEvent('wave_5');
   if(wave===15) gameEvent('wave_15');
@@ -723,7 +731,7 @@ function update(dtMs){
   if(nerpaCd>0){
     nerpaCd=Math.max(0,nerpaCd-dt);
     const sec=Math.ceil(nerpaCd);
-    if(sec!==nerpaCdShown){ nerpaCdShown=sec; $('nerpaCdT').textContent=sec||''; $('nerpaBtn').classList.toggle('cd',sec>0); }
+    if(sec!==nerpaCdShown){ nerpaCdShown=sec; $('nerpaCdT').textContent=sec||''; $('nerpaBtn').classList.toggle('cd',sec>0); if(sec===0&&state==='play') $('nerpaBtn').classList.add('rdy'); }
   }
   towers.forEach(tw=>{
     tw.cd-=dt;
@@ -1163,11 +1171,11 @@ function render(){
       }
       ctx.stroke();
     }
-    // нерпа на льдине покачивается
+    // нерпа на льдине покачивается (рисуется ПОСЛЕ башен, чтобы её не закрывали)
     if(NERPA.complete && NERPA.naturalWidth){
       const bobN=Math.sin(t*1.8)*CS*0.04;
       const nsz=CS*1.35;
-      ctx.drawImage(NERPA, gx-nsz*0.62, gy-nsz*0.62+bobN, nsz, nsz);
+      NERPAP={x:gx-nsz*0.62, y:gy-nsz*0.62+bobN, s:nsz};
     }
   }
 
@@ -1200,7 +1208,21 @@ function render(){
     ctx.restore();
   });
 
-  towers.forEach(tw=>drawTowerFig(tw,t));
+  towers.slice().sort((a,b)=>a.r-b.r||a.c-b.c).forEach(tw=>drawTowerFig(tw,t));
+  if(NERPAP) ctx.drawImage(NERPA, NERPAP.x, NERPAP.y, NERPAP.s, NERPAP.s);
+
+  // пульсирующий ▲ над башней, если хватает на апгрейд
+  if(state==='play'){
+    const pk=0.65+0.35*Math.sin(t*4.5);
+    towers.forEach(tw=>{
+      if(tw.lvl>=3||money<upgradeCost(tw)||tw.born>0) return;
+      const x=offX+(tw.c+0.5)*CS, y=offY+(tw.r+0.5)*CS-CS*0.78-Math.sin(t*4.5)*2;
+      ctx.save(); ctx.globalAlpha=pk;
+      ctx.fillStyle='#6fe08a'; ctx.strokeStyle=OUT; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(x,y-6); ctx.lineTo(x+6,y+4); ctx.lineTo(x-6,y+4); ctx.closePath();
+      ctx.fill(); ctx.stroke(); ctx.restore();
+    });
+  }
 
   enemies.forEach(e=>{
     const [x,y,a]=posAt(e.d), b=ENEMIES[e.type];
