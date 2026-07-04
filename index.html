@@ -57,6 +57,18 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #ffBtn { display:flex; align-items:center; justify-content:center; gap:3px; }
 #ffBtn .x2l { font-weight:800; font-size:16px; letter-spacing:.2px; }
 #ffBtn img { width:22px; height:22px; flex:0 0 auto; }
+@media (max-width:370px){
+  #quick button { width:46px; border-radius:11px; padding:3px; }
+  #ffBtn .x2l { font-size:13px; } #ffBtn img { width:17px; height:17px; }
+  #nerpaBtn .frzL { font-size:8px; }
+  #waveBtn { width:88px; font-size:14px; padding:6px; }
+  .tcard .ico { width:44px; height:44px; }
+  .tcard .nm { font-size:9.5px; } .tcard .pr { font-size:11px; }
+}
+@media (max-height:640px){
+  #quick button { width:48px; }
+  .tcard .ico { width:42px; height:42px; }
+}
 #cards { display:flex; gap:6px; }
 .tcard {
   flex:1; background:#1d2a45; border-radius:14px; padding:8px 4px 7px;
@@ -136,7 +148,9 @@ button, .tcard { transition:transform .09s ease-out; }
 #overlay #shareBtn { display:none; background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; }
 #overlay #stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
-#nerpaBtn { position:relative; }
+#nerpaBtn { position:relative; border:2px solid #4a7fa8; background:#12283f; }
+#nerpaBtn .frz { position:absolute; top:-4px; right:-4px; font-size:15px; background:#7fd8ff; color:#052030; border-radius:50%; width:20px; height:20px; line-height:20px; text-align:center; border:2px solid #0e1626; pointer-events:none; }
+#nerpaBtn .frzL { position:absolute; bottom:1px; left:0; right:0; font-size:9px; font-weight:800; color:#aee6ff; letter-spacing:1px; pointer-events:none; text-shadow:0 1px 3px #000; }
 #nerpaBtn.rdy { animation:nerpaRdy 1.6s infinite; }
 @keyframes nerpaRdy { 0%,100%{ box-shadow:0 0 0 rgba(110,220,255,0); } 50%{ box-shadow:0 0 16px rgba(110,220,255,.95); } }
 #nerpaBtn.cd img { filter:grayscale(1) brightness(.5); }
@@ -174,7 +188,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <div id="cards"></div>
     <button id="waveBtn"></button>
     <div id="quick">
-      <button id="nerpaBtn"><img src="./assets/nerpa.png" alt=""><span class="cdt" id="nerpaCdT"></span></button>
+      <button id="nerpaBtn"><img src="./assets/nerpa.png" alt=""><span class="frz">❄</span><span class="frzL">ЛЁД</span><span class="cdt" id="nerpaCdT"></span></button>
       <button id="ffBtn"><img src="./assets/ff.png" alt=""><span class="x2l">x2</span></button>
       <button id="sndBtn"><img src="./assets/snd.png" alt="звук"></button>
     </div>
@@ -219,6 +233,18 @@ document.addEventListener('pointerdown',()=>{ try{ if(ac && ac.state!=='running'
 
 // ================= ЗВУК =================
 let ac=null, muted=false, echoBus=null;
+// мастер-шина: компрессор выравнивает пики — звук не шокирует, когда совпали 10 событий
+let masterBus=null;
+function master(){
+  if(!masterBus && ac){
+    const c=ac.createDynamicsCompressor();
+    c.threshold.value=-14; c.knee.value=18; c.ratio.value=8; c.attack.value=0.004; c.release.value=0.18;
+    const g=ac.createGain(); g.gain.value=0.9;
+    c.connect(g); g.connect(ac.destination);
+    masterBus=c;
+  }
+  return masterBus||ac.destination;
+}
 function A(){
   if(!ac){ const C=window.AudioContext||window.webkitAudioContext; ac=new C(); setTimeout(loadMusic,800); }
   if(ac.state!=='running'){ try{ ac.resume(); }catch(e){} }
@@ -229,7 +255,7 @@ function A(){
     const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2400;
     const wet=ac.createGain(); wet.gain.value=0.35;
     echoBus.connect(fb); fb.connect(lp); lp.connect(echoBus);
-    echoBus.connect(wet); wet.connect(ac.destination);
+    echoBus.connect(wet); wet.connect(master());
   }
   if(!musStarted) startMusic();
   return ac;
@@ -243,7 +269,7 @@ function tone(f,dur,type='square',vol=0.12,slide=0,delay=0,send=0.12){
   g.gain.setValueAtTime(0.0001,t0);
   g.gain.exponentialRampToValueAtTime(Math.max(0.001,vol),t0+0.012);
   g.gain.exponentialRampToValueAtTime(0.001,t0+dur);
-  o.connect(g); g.connect(a.destination);
+  o.connect(g); g.connect(master());
   if(send>0 && echoBus){ const s=a.createGain(); s.gain.value=send; g.connect(s); s.connect(echoBus); }
   o.start(t0); o.stop(t0+dur+0.05);
 }
@@ -263,7 +289,7 @@ function noiseS(dur,vol=0.2,fc=800,hp=0,delay=0){
   g.gain.exponentialRampToValueAtTime(0.001,t0+dur);
   let node=f;
   if(hp){ const hh=a.createBiquadFilter(); hh.type='highpass'; hh.frequency.value=hp; f.connect(hh); node=hh; }
-  src.connect(f); node.connect(g); g.connect(a.destination);
+  src.connect(f); node.connect(g); g.connect(master());
   if(echoBus){ const s=a.createGain(); s.gain.value=0.1; g.connect(s); s.connect(echoBus); }
   src.start(t0);
 }
@@ -307,7 +333,7 @@ function startMusic(){
 
 // ===== МУЗЫКА 2.0: файловые лупы (Suno), лениво, с фолбэком =====
 const MUSF={amb:null,btl:null,bark:null,crack:null,cur:null,curG:null,curName:'',gain:null,loaded:false,failed:false,loading:false};
-function musMaster(){ if(!MUSF.gain&&ac){ MUSF.gain=ac.createGain(); MUSF.gain.gain.value=muted?0:0.55; MUSF.gain.connect(ac.destination); } return MUSF.gain; }
+function musMaster(){ if(!MUSF.gain&&ac){ MUSF.gain=ac.createGain(); MUSF.gain.gain.value=muted?0:0.55; MUSF.gain.connect(master()); } return MUSF.gain; }
 function loadMusic(){
   if(MUSF.loaded||MUSF.failed||MUSF.loading||!ac) return;
   MUSF.loading=true;
@@ -336,7 +362,7 @@ function playBuf(buf,vol,delay){
   if(!buf||!ac||muted) return;
   const s=ac.createBufferSource(); s.buffer=buf;
   const g=ac.createGain(); g.gain.value=vol||1;
-  s.connect(g); g.connect(ac.destination); s.start(ac.currentTime+(delay||0));
+  s.connect(g); g.connect(master()); s.start(ac.currentTime+(delay||0));
 }
 
 // ================= СЕТКА И ПУТЬ =================
@@ -426,13 +452,31 @@ let state='menu', money, lives, wave, waveActive, towers, enemies, projs, parts,
 let fxs=[];
 let drag=null; // {type, x, y}
 let tut=0;     // 1 = подсказка "перетащи", 2 = подсказка "жми волна", 0 = выкл
+let tutCell=null, lastBadToast=0;
+function pickTutCell(){
+  let best=null, bestScore=-1;
+  const half=Math.floor(PATH_CELLS.length*0.55);
+  for(let i=2;i<half;i++){
+    const [pc,pr]=PATH_CELLS[i];
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dc,dr])=>{
+      const c=pc+dc, r=pr+dr;
+      if(c<0||c>=COLS||r<1||r>=ROWS-1||pathSet.has(c+','+r)) return;
+      let adj=0;
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(([ac,ar])=>{ if(pathSet.has((c+ac)+','+(r+ar))) adj++; });
+      const score=adj*10-i*0.05;
+      if(score>bestScore){ bestScore=score; best=[c,r]; }
+    });
+  }
+  return best;
+}
 
 function reset(){
   money=stormMode?120:140; lives=stormMode?5:10; wave=0; waveActive=false;
   nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd'); $('nerpaBtn').classList.remove('rdy');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
-  tut = 1;
+  tut = (localStorage_ok() && localStorage.getItem('bk_tut2')) ? 0 : 1;
+  tutCell = null; lastBadToast = 0;
   ffBtn.classList.remove('on');
   renderCards(); updTut();
 }
@@ -465,6 +509,7 @@ function updTut(){
   for(const k in cardEls) cardEls[k] && cardEls[k].classList.remove('hintPulse');
   if(state!=='play') return;
   if(tut===1){
+    if(!tutCell) tutCell=pickTutCell();
     hintEl.textContent=STR.hint1;
     hintEl.style.bottom=(bar.offsetHeight+14)+'px';
     hintEl.classList.add('show');
@@ -521,7 +566,9 @@ addEventListener('pointerup',e=>{
   if(drag.moved){
     const cell=cellAt(e.clientX,e.clientY-CS*1.1);
     if(cell && canPlace(cell[0],cell[1])) place(drag.type,cell[0],cell[1]);
-    else if(cell){ SND.bad(); badCell={c:cell[0],r:cell[1],t:0.3}; }
+    else if(cell){ SND.bad(); badCell={c:cell[0],r:cell[1],t:0.3};
+      const now=performance.now();
+      if(now-lastBadToast>2500){ lastBadToast=now; showToast(pathSet.has(cell[0]+','+cell[1])?STR.tutRoad:STR.tutBusy); } }
   }
   drag=null;
 });
@@ -547,7 +594,7 @@ function place(type,c,r){
   SND.place();
   ring(offX+(c+0.5)*CS, offY+(r+0.5)*CS, '#ffd23c', base.rng*CS);
   if(selCard && money<TOWERS[selCard].cost) selCard=null;
-  if(tut===1) tutNext(2);
+  if(tut===1){ tutCell=null; tutNext(2); }
   updHud();
 }
 
@@ -632,7 +679,10 @@ cv.addEventListener('pointerup',e=>{
   const [c,r]=cell;
   const tw=towers.find(t=>t.c===c&&t.r===r);
   if(selCard){
-    if(!canPlace(c,r)){ SND.bad(); badCell={c,r,t:0.3}; return; }
+    if(!canPlace(c,r)){ SND.bad(); badCell={c,r,t:0.3};
+      const now=performance.now();
+      if(now-lastBadToast>2500){ lastBadToast=now; showToast(pathSet.has(c+','+r)?STR.tutRoad:STR.tutBusy); }
+      return; }
     place(selCard,c,r);
     return;
   }
@@ -662,6 +712,7 @@ waveBtn.onclick=()=>{
   if(waveActive||state!=='play') return;
   A(); SND.wave();
   if(tut===2) tutNext(0);
+  if(localStorage_ok() && !localStorage.getItem('bk_tut2')){ try{ localStorage.setItem('bk_tut2','1'); }catch(e){} }
   wave++; waveActive=true;
   gameEvent('wave_reached',{wave:wave,storm:stormMode?1:0});
   if(wave===1){
@@ -883,6 +934,10 @@ function update(dtMs){
     money+=bonus; stats.gold+=bonus; SND.coin();
     if(wave>=MAXWAVE){ endGame(true); return; }
     fxWaveClear(wave,bonus);
+    if(wave===1 && localStorage_ok() && !localStorage.getItem('bk_tut_up')){
+      setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400);
+      try{ localStorage.setItem('bk_tut_up','1'); }catch(e){}
+    }
     updHud();
   }
 
@@ -1385,6 +1440,26 @@ function render(){
   if(badCell){
     ctx.fillStyle='rgba(255,80,80,'+(badCell.t/0.3*0.4)+')';
     ctx.fillRect(offX+badCell.c*CS,offY+badCell.r*CS,CS,CS);
+  }
+  // обучение: клетка-мишень со стрелкой
+  if(tut===1 && tutCell && state==='play'){
+    const tx=offX+tutCell[0]*CS, ty=offY+tutCell[1]*CS;
+    const pk=0.45+0.3*Math.sin(t*4);
+    ctx.save();
+    ctx.fillStyle='rgba(255,210,60,'+(pk*0.35)+')';
+    ctx.fillRect(tx,ty,CS,CS);
+    ctx.strokeStyle='rgba(255,210,60,'+pk+')'; ctx.lineWidth=3;
+    ctx.setLineDash([7,5]); ctx.strokeRect(tx+2,ty+2,CS-4,CS-4); ctx.setLineDash([]);
+    const bob=Math.abs(Math.sin(t*4.5))*8;
+    const ax=tx+CS/2, ay=ty-CS*0.35-bob;
+    ctx.fillStyle='#ffd23c'; ctx.strokeStyle=OUT; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(ax,ay+12); ctx.lineTo(ax+9,ay); ctx.lineTo(ax+3,ay); ctx.lineTo(ax+3,ay-12); ctx.lineTo(ax-3,ay-12); ctx.lineTo(ax-3,ay); ctx.lineTo(ax-9,ay); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.font='bold '+Math.round(CS*0.26)+'px RussoOne,sans-serif'; ctx.textAlign='center';
+    ctx.strokeStyle=OUT; ctx.lineWidth=3;
+    ctx.strokeText(STR.tutTarget, ax, ay-18);
+    ctx.fillStyle='#ffd23c'; ctx.fillText(STR.tutTarget, ax, ay-18);
+    ctx.restore();
   }
   if(selTw){
     const b=TOWERS[selTw.type];
