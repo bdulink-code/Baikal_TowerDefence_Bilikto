@@ -186,7 +186,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.3</div>
+  <div id="ver">v1.5.4</div>
 </div>
 
 <script type="module">
@@ -1010,10 +1010,26 @@ function drawTowerFig(tw,t){
     ctx.beginPath(); ctx.arc(x-CS*0.18+l*CS*0.18, y+CS*0.42, 3,0,7); ctx.fill(); ctx.stroke();
   }
 }
+// спрайты башен: 3 типа × 3 уровня (фолбэк — векторная отрисовка ниже)
+const TIMG={};
+['archer','frost','fire'].forEach(tp=>{
+  TIMG[tp]=[1,2,3].map(l=>{ const im=new Image(); im.src='./assets/'+tp+(l===1?'':l)+'.png'; return im; });
+});
 function drawTowerAt(x,y,type,lvl,t,k,born,ang,alpha){
   const s=CS*0.95;
   const pop = born>0 ? 1+Math.sin(born/0.35*Math.PI)*0.25 : 1;
   const breathe=Math.sin(t*2+x*0.03+y*0.02)*0.02;
+  const spr=TIMG[type]&&TIMG[type][Math.min(lvl,3)-1];
+  if(spr && spr.complete && spr.naturalWidth){
+    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.fillStyle='rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.ellipse(x,y+s*0.3,s*0.44,s*0.16,0,0,7); ctx.fill();
+    const sc=(pop+breathe)*(1+k*0.07);
+    const sz=CS*1.22*sc;
+    ctx.drawImage(spr, x-sz/2, y+s*0.34-sz, sz, sz);
+    ctx.restore();
+    return;
+  }
   const lw=Math.max(2,s*0.06);
   ctx.save(); ctx.globalAlpha=alpha;
   // тень + каменный помост
