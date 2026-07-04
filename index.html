@@ -42,12 +42,12 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
   padding:6px 8px calc(8px + env(safe-area-inset-bottom,0));
 }
 #quick { display:flex; flex-direction:column; gap:6px; justify-content:stretch; }
-#quick button { flex:1; width:58px; border-radius:14px; padding:5px; }
+#quick button { flex:1; width:clamp(46px,14vw,64px); border-radius:14px; padding:5px; }
 #quick img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
 #quick button.mutedBtn img { filter:grayscale(1) brightness(.55); }
 #barRow { display:flex; gap:8px; align-items:stretch; max-width:520px; margin:0 auto; }
 #cards { flex:1; }
-#waveBtn { width:104px; background:#ffd23c; color:#1a1400; font-size:16px; line-height:1.2; padding:8px; border-radius:16px; box-shadow:0 4px 14px rgba(255,210,60,.35); }
+#waveBtn { width:clamp(84px,26vw,112px); background:#ffd23c; color:#1a1400; font-size:clamp(13px,4vw,17px); line-height:1.2; padding:8px; border-radius:16px; box-shadow:0 4px 14px rgba(255,210,60,.35); }
 #waveBtn:disabled { background:#3a4560; color:#8fa3c8; box-shadow:none; }
 #waveBtn:active:not(:disabled) { transform:scale(.97); }
 #waveBtn.pulse { animation:pulse 1s infinite; }
@@ -55,29 +55,19 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #ffBtn, #sndBtn { background:#22314f; color:#e8f0ff; font-size:17px; }
 #ffBtn.on { background:#4caf78; color:#04140b; }
 #ffBtn { display:flex; align-items:center; justify-content:center; gap:3px; }
-#ffBtn .x2l { font-weight:800; font-size:16px; letter-spacing:.2px; }
-#ffBtn img { width:22px; height:22px; flex:0 0 auto; }
-@media (max-width:370px){
-  #quick button { width:46px; border-radius:11px; padding:3px; }
-  #ffBtn .x2l { font-size:13px; } #ffBtn img { width:17px; height:17px; }
-  #nerpaBtn .frzL { font-size:8px; }
-  #waveBtn { width:88px; font-size:14px; padding:6px; }
-  .tcard .ico { width:44px; height:44px; }
-  .tcard .nm { font-size:9.5px; } .tcard .pr { font-size:11px; }
-}
-@media (max-height:640px){
-  #quick button { width:48px; }
-  .tcard .ico { width:42px; height:42px; }
-}
+#ffBtn .x2l { font-weight:800; font-size:clamp(13px,4vw,17px); letter-spacing:.2px; }
+#ffBtn img { width:clamp(17px,5.5vw,24px); height:clamp(17px,5.5vw,24px); flex:0 0 auto; }
+
+
 #cards { display:flex; gap:6px; }
 .tcard {
   flex:1; background:#1d2a45; border-radius:14px; padding:8px 4px 7px;
   text-align:center; color:#e8f0ff; border:2.5px solid #2c3d61; position:relative;
   transition:transform .08s; touch-action:none;
 }
-.tcard .ico { width:54px; height:54px; border-radius:10px; display:block; margin:0 auto 2px; pointer-events:none; object-fit:cover; }
-.tcard .nm { font-size:10.5px; font-weight:800; display:block; margin-top:1px; pointer-events:none; }
-.tcard .pr { font-size:12px; font-weight:800; color:#ffd23c; display:block; pointer-events:none; }
+.tcard .ico { width:clamp(40px,13vw,58px); height:clamp(40px,13vw,58px); border-radius:10px; display:block; margin:0 auto 2px; pointer-events:none; object-fit:cover; }
+.tcard .nm { font-size:clamp(9px,2.7vw,11.5px); font-weight:800; display:block; margin-top:1px; pointer-events:none; }
+.tcard .pr { font-size:clamp(10px,3vw,13px); font-weight:800; color:#ffd23c; display:block; pointer-events:none; }
 .tcard.selected { border-color:#ffd23c; background:#2a3a5e; transform:translateY(-4px); box-shadow:0 6px 14px rgba(255,210,60,.25); }
 .tcard.off { opacity:.4; }
 .tcard.can { animation:canBreath 1.6s ease-in-out infinite; }
@@ -145,12 +135,13 @@ button, .tcard { transition:transform .09s ease-out; }
 #ovRecord { margin-top:14px; font-size:14px; color:#ffd23c; letter-spacing:.5px; min-height:18px; }
 #ovRecord.new { animation:hintBob 1.4s infinite; }
 #ovBtns { display:flex; flex-direction:column; gap:10px; align-items:center; }
+#overlay #contBtn { background:#4caf78; color:#04140b; font-size:16px; padding:13px 34px; box-shadow:0 6px 20px rgba(76,175,120,.4); }
 #overlay #shareBtn { display:none; background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; }
 #overlay #stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
 #nerpaBtn { position:relative; border:2px solid #4a7fa8; background:#12283f; }
 #nerpaBtn .frz { position:absolute; top:-4px; right:-4px; font-size:15px; background:#7fd8ff; color:#052030; border-radius:50%; width:20px; height:20px; line-height:20px; text-align:center; border:2px solid #0e1626; pointer-events:none; }
-#nerpaBtn .frzL { position:absolute; bottom:1px; left:0; right:0; font-size:9px; font-weight:800; color:#aee6ff; letter-spacing:1px; pointer-events:none; text-shadow:0 1px 3px #000; }
+#nerpaBtn .frzL { position:absolute; bottom:1px; left:0; right:0; font-size:clamp(7.5px,2.2vw,9.5px); font-weight:800; color:#aee6ff; letter-spacing:1px; pointer-events:none; text-shadow:0 1px 3px #000; }
 #nerpaBtn.rdy { animation:nerpaRdy 1.6s infinite; }
 @keyframes nerpaRdy { 0%,100%{ box-shadow:0 0 0 rgba(110,220,255,0); } 50%{ box-shadow:0 0 16px rgba(110,220,255,.95); } }
 #nerpaBtn.cd img { filter:grayscale(1) brightness(.5); }
@@ -203,12 +194,13 @@ button, .tcard { transition:transform .09s ease-out; }
   <div id="ovStars"></div>
   <div id="ovStats"></div>
   <div id="ovBtns">
+    <button id="contBtn" style="display:none"></button>
     <button id="startBtn"></button>
     <button id="stormBtn"></button>
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.6</div>
+  <div id="ver">v1.5.7</div>
 </div>
 
 <script type="module">
@@ -385,12 +377,14 @@ const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const DPR_CAP=1.5;
 let W,H,CS,offX,offY, pathPts=[], pathLen=0, segLens=[];
 function resize(){
-  W=Math.min(innerWidth,720); H=innerHeight;
+  W=innerWidth; H=innerHeight;
   const dpr=Math.min(devicePixelRatio||1,DPR_CAP);
   cv.width=W*dpr; cv.height=H*dpr;
   cv.style.width=W+'px'; cv.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  const topPad=60, botPad=176;
+  const topEl=document.getElementById('top'), barEl=document.getElementById('bar');
+  const topPad=(topEl&&topEl.offsetHeight>0?topEl.offsetHeight:Math.max(48,H*0.07))+6;
+  const botPad=(barEl&&barEl.offsetHeight>0?barEl.offsetHeight:Math.max(120,H*0.20))+10;
   CS=Math.min(W/COLS,(H-topPad-botPad)/ROWS);
   offX=(W-CS*COLS)/2;
   const availH=H-topPad-botPad;
@@ -491,6 +485,23 @@ function menuRecordLine(){
   if(s>0) out.push(STR.recordStorm.replace('{w}',s));
   return out.join('   ');
 }
+// ===== автосохранение партии =====
+function saveGame(){
+  if(!localStorage_ok()||state!=='play') return;
+  try{ localStorage.setItem('bk_save', JSON.stringify({v:1,storm:stormMode?1:0,wave,money:Math.floor(money),lives,
+    towers:towers.map(t=>({type:t.type,c:t.c,r:t.r,lvl:t.lvl}))})); }catch(e){}
+}
+function loadSave(){
+  if(!localStorage_ok()) return null;
+  try{ const s=JSON.parse(localStorage.getItem('bk_save')||'null');
+    return (s&&s.v===1&&s.wave>=1&&Array.isArray(s.towers))?s:null; }catch(e){ return null; }
+}
+function clearSave(){ if(localStorage_ok()) try{ localStorage.removeItem('bk_save'); }catch(e){} }
+function updContBtn(){
+  const s=loadSave(), b=$('contBtn');
+  if(s){ b.textContent=STR.contBtn.replace('{n}',s.wave+1)+(s.storm?' ⚡':''); b.style.display='block'; }
+  else b.style.display='none';
+}
 
 // ================= UI =================
 const $=id=>document.getElementById(id);
@@ -502,6 +513,7 @@ $('lblMoney').textContent=STR.hudMoney; $('lblLives').textContent=STR.hudLives; 
 $('ovT1').textContent=STR.title1; $('ovT2').textContent=STR.title2;
 $('ovP').textContent=STR.intro; $('startBtn').textContent=STR.start;
 $('ovRecord').textContent=menuRecordLine();
+updContBtn();
 if(stormUnlocked){ $('stormBtn').textContent=STR.storm; $('stormBtn').style.display='block'; }
 
 function updTut(){
@@ -595,6 +607,7 @@ function place(type,c,r){
   ring(offX+(c+0.5)*CS, offY+(r+0.5)*CS, '#ffd23c', base.rng*CS);
   if(selCard && money<TOWERS[selCard].cost) selCard=null;
   if(tut===1){ tutCell=null; tutNext(2); }
+  if(!waveActive) saveGame();
   updHud();
 }
 
@@ -648,6 +661,7 @@ upBtn.onclick=()=>{
   ring(ux,uy,'#4caf78',CS*0.8); ring(ux,uy,'#ffd23c',CS*1.15);
   puff(ux,uy-CS*0.2,'#ffd23c',8,150);
   dmgNum(ux,uy-CS*0.5,'▲','#6fe08a');
+  if(!waveActive) saveGame();
   updHud();
 };
 sellBtn.onclick=()=>{
@@ -732,6 +746,7 @@ function endGame(win){
   state=win?'win':'over';
   gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives,storm:stormMode?1:0});
   gameEvent(win?'game_win':'game_lose',{wave:wave,storm:stormMode?1:0});
+  clearSave(); $('contBtn').style.display='none';
   const reached=win?MAXWAVE:wave, prevBest=bestGet(stormMode), isNew=reached>prevBest;
   if(isNew) bestSet(stormMode,reached);
   const rc=$('ovRecord');
@@ -790,9 +805,13 @@ function endGame(win){
   $('stormBtn').style.display=stormUnlocked?'block':'none';
   lastWin=win;
 }
-function launch(storm){
+function launch(storm, save){
   stormMode=storm;
   reset(); state='play';
+  if(save){
+    wave=save.wave; money=save.money; lives=save.lives; tut=0; tutCell=null;
+    save.towers.forEach(t=>{ if(TOWERS[t.type]&&!pathSet.has(t.c+','+t.r)) towers.push({type:t.type,c:t.c,r:t.r,lvl:Math.min(3,t.lvl||1),cd:0,anim:0,ang:-Math.PI/2,born:0}); });
+  } else clearSave();
   musSwitch(storm?'storm':'btl');
   overlay.classList.add('hidden');
   overlay.classList.remove('defeat');
@@ -804,6 +823,7 @@ function launch(storm){
   updHud(); updTut();
 }
 $('stormBtn').onclick=()=>{ A(); gameEvent('storm_start'); launch(true); };
+$('contBtn').onclick=()=>{ const s=loadSave(); if(!s) return; A(); gameEvent('continue_run',{wave:s.wave}); launch(!!s.storm, s); };
 $('shareBtn').onclick=async ()=>{
   A(); gameEvent('share_click');
   const txt=(lastWin?STR.shareWin.replace('{k}',stats.kills):STR.shareLose.replace('{w}',wave));
@@ -933,6 +953,7 @@ function update(dtMs){
     const bonus=Math.round((40+wave*8)*(stormMode?0.75:1));
     money+=bonus; stats.gold+=bonus; SND.coin();
     if(wave>=MAXWAVE){ endGame(true); return; }
+    saveGame();
     fxWaveClear(wave,bonus);
     if(wave===1 && localStorage_ok() && !localStorage.getItem('bk_tut_up')){
       setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400);
