@@ -186,7 +186,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.2</div>
+  <div id="ver">v1.5.3</div>
 </div>
 
 <script type="module">
@@ -212,7 +212,7 @@ document.addEventListener('pointerdown',()=>{ try{ if(ac && ac.state!=='running'
 // ================= ЗВУК =================
 let ac=null, muted=false, echoBus=null;
 function A(){
-  if(!ac){ const C=window.AudioContext||window.webkitAudioContext; ac=new C(); }
+  if(!ac){ const C=window.AudioContext||window.webkitAudioContext; ac=new C(); setTimeout(loadMusic,800); }
   if(ac.state!=='running'){ try{ ac.resume(); }catch(e){} }
   if(!echoBus){
     // эхо-шина: лёгкое пространство делает синтез "дорогим"
@@ -286,6 +286,7 @@ let musStarted=false, musStep=0;
 function startMusic(){
   if(musStarted) return; musStarted=true;
   setInterval(()=>{
+    if(MUSF.loaded) return; // файловая музыка загружена — процедурная умолкает
     if(muted || document.hidden || !ac || ac.state!=='running') return;
     if(musStep%8===0) tone(MUS_BASS[(musStep>>3)%MUS_BASS.length],3.8,'triangle',0.055,0,0,0.2);
     const n=MUS_MEL[musStep%MUS_MEL.length];
@@ -294,6 +295,40 @@ function startMusic(){
     if(musStep%16===8) bell(MUS_SCALE[(musStep>>4)%3]*2,1.8,0.028);
     musStep++;
   },480);
+}
+
+// ===== МУЗЫКА 2.0: файловые лупы (Suno), лениво, с фолбэком =====
+const MUSF={amb:null,btl:null,bark:null,crack:null,cur:null,curG:null,curName:'',gain:null,loaded:false,failed:false,loading:false};
+function musMaster(){ if(!MUSF.gain&&ac){ MUSF.gain=ac.createGain(); MUSF.gain.gain.value=muted?0:0.55; MUSF.gain.connect(ac.destination); } return MUSF.gain; }
+function loadMusic(){
+  if(MUSF.loaded||MUSF.failed||MUSF.loading||!ac) return;
+  MUSF.loading=true;
+  const get=n=>fetch('./assets/'+n+'.m4a').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(b=>ac.decodeAudioData(b));
+  Promise.all([get('ambient'),get('battle'),get('nerpa_bark'),get('ice_crack')]).then(([a,b,nb,ic])=>{
+    MUSF.amb=a; MUSF.btl=b; MUSF.bark=nb; MUSF.crack=ic; MUSF.loaded=true;
+    musSwitch(state==='play'?'btl':'amb');
+  }).catch(()=>{ MUSF.failed=true; });
+}
+function musSwitch(name){
+  if(!MUSF.loaded||!ac) return;
+  if(MUSF.curName===name) return;
+  const buf=name==='btl'?MUSF.btl:MUSF.amb; if(!buf) return;
+  const g=musMaster(), t=ac.currentTime;
+  if(MUSF.cur){
+    const old=MUSF.cur, og=MUSF.curG;
+    try{ og.gain.setValueAtTime(og.gain.value,t); og.gain.linearRampToValueAtTime(0,t+0.8); }catch(e){}
+    setTimeout(()=>{ try{ old.stop(); }catch(e){} },900);
+  }
+  const src=ac.createBufferSource(); src.buffer=buf; src.loop=true;
+  const sg=ac.createGain(); sg.gain.setValueAtTime(0.0001,t); sg.gain.linearRampToValueAtTime(1,t+0.8);
+  src.connect(sg); sg.connect(g); src.start();
+  MUSF.cur=src; MUSF.curG=sg; MUSF.curName=name;
+}
+function playBuf(buf,vol,delay){
+  if(!buf||!ac||muted) return;
+  const s=ac.createBufferSource(); s.buffer=buf;
+  const g=ac.createGain(); g.gain.value=vol||1;
+  s.connect(g); g.connect(ac.destination); s.start(ac.currentTime+(delay||0));
 }
 
 // ================= СЕТКА И ПУТЬ =================
@@ -569,7 +604,8 @@ ffBtn.onclick=()=>{ A(); gs=gs===1?2:1; ffBtn.classList.toggle('on',gs===2); };
 SND.nerpa=()=>{ [880,660,440].forEach((f,i)=>tone(f,0.16,'sine',0.12,-60,i*0.07)); noiseS(0.25,0.1,2200); };
 $('nerpaBtn').onclick=()=>{
   if(state!=='play'||nerpaCd>0||!enemies.length) return;
-  A(); SND.nerpa();
+  A();
+  if(MUSF.bark){ playBuf(MUSF.bark,1); playBuf(MUSF.crack,0.9,0.32); } else SND.nerpa();
   $('nerpaBtn').classList.remove('rdy');
   nerpaCd=40; nerpaCdShown=-1;
   enemies.forEach(e=>{ e.frz=2.5; });
@@ -577,7 +613,7 @@ $('nerpaBtn').onclick=()=>{
   ring(nx,ny,'#7fd8ff',CS*2.2); ring(nx,ny,'#aef7e8',CS*3.4);
   window._nu||(window._nu=1,gameEvent('nerpa_used'));
 };
-sndBtn.onclick=()=>{ muted=!muted; sndBtn.classList.toggle('mutedBtn',muted); if(!muted){ A(); SND.coin(); } };
+sndBtn.onclick=()=>{ muted=!muted; sndBtn.classList.toggle('mutedBtn',muted); if(MUSF.gain) MUSF.gain.gain.value=muted?0:0.55; if(!muted){ A(); SND.coin(); } };
 
 cv.addEventListener('pointerup',e=>{
   if(state!=='play' || (drag&&drag.moved)) return;
@@ -640,6 +676,7 @@ function endGame(win){
   const rc=$('ovRecord');
   rc.textContent=isNew?STR.recordNew.replace('{w}',reached):(stormMode?STR.recordStorm:STR.record).replace('{w}',Math.max(prevBest,reached));
   rc.classList.toggle('new',isNew);
+  musSwitch('amb');
   win?SND.win():SND.lose();
   overlay.classList.remove('hidden');
   $('top').classList.add('hidden'); bar.classList.add('hidden'); hideTwMenu();
@@ -672,6 +709,7 @@ function endGame(win){
 function launch(storm){
   stormMode=storm;
   reset(); state='play';
+  musSwitch('btl');
   overlay.classList.add('hidden');
   $('top').classList.remove('hidden'); bar.classList.remove('hidden');
   if(storm) showToast(STR.stormToast);
@@ -1352,7 +1390,7 @@ let acc=0, last=performance.now(), paused=false, frames=0, fpsAt=last;
 addEventListener('blur',()=>paused=true);
 addEventListener('focus',()=>{ paused=false; last=performance.now(); });
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){ paused=true; }
+  if(document.hidden){ paused=true; try{ if(ac) ac.suspend(); }catch(e){} }
   else { paused=false; last=performance.now(); if(ac && ac.state!=='running'){ try{ ac.resume(); }catch(e){} } }
 });
 const dev=new URLSearchParams(location.search).has('dev');
