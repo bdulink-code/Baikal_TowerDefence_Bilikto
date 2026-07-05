@@ -80,11 +80,12 @@ button, .tcard { transition:transform .09s ease-out; }
 @keyframes cardPulse { 0%,100%{ border-color:#2c3d61; } 50%{ border-color:#ffd23c; box-shadow:0 0 18px rgba(255,210,60,.6);} }
 
 #twMenu {
-  position:fixed; left:8px; right:8px; z-index:7;
-  background:#1d2a45; border:2px solid #3d5378; border-radius:14px;
-  padding:8px; display:none; gap:6px; align-items:center;
+  flex:1; background:#1d2a45; border:2px solid #3d5378; border-radius:14px;
+  padding:8px; display:none; gap:6px; align-items:center; min-height:60px;
 }
-#twMenu.open { display:flex; }
+#barRow.menuMode #cards { display:none; }
+#barRow.menuMode #twMenu { display:flex; }
+
 #twMenu .ttl { color:#e8f0ff; font-weight:800; font-size:13px; flex:1; padding-left:4px; }
 #twMenu button { padding:10px 12px; font-size:13px; }
 #upBtn { background:#4caf78; color:#04140b; }
@@ -207,7 +208,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.10</div>
+  <div id="ver">v1.5.11</div>
 </div>
 
 <script type="module">
@@ -222,7 +223,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.5.9';
+const GAME_VER='1.5.11';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -505,7 +506,7 @@ function reset(){
   fpsReset();
   militia=[]; milCd=0; milCdShown=-1; giftArrow=false;
   $('milCdT').textContent=''; $('milBtn').classList.remove('cd'); $('milBtn').classList.remove('rdy');
-  tut = (localStorage_ok() && localStorage.getItem('bk_tut2')) ? 0 : 1;
+  tut = 1; // обучение каждую партию — по решению владельца
   tutCell = null; lastBadToast = 0;
   ffBtn.classList.remove('on');
   renderCards(); updTut();
@@ -668,6 +669,7 @@ function showToast(t){
   clearTimeout(toastT); toastT=setTimeout(()=>toast.style.opacity=0,1400);
 }
 function showTwMenu(tw){
+  document.getElementById('barRow').classList.add('menuMode');
   selTw=tw;
   const base=TOWERS[tw.type];
   twTitle.textContent=base.ico+' '+STR.towers[tw.type].nm+' · '+STR.lvl+' '+tw.lvl;
@@ -675,10 +677,9 @@ function showTwMenu(tw){
   if(tw.lvl>=3){ upBtn.textContent=STR.maxLvl; upBtn.disabled=true; }
   else { upBtn.textContent=STR.upgrade+' '+upCost+'🐟'; upBtn.disabled=money<upCost; }
   sellBtn.textContent=STR.sell+' +'+sellValue(tw)+'🐟';
-  twMenu.classList.add('open');
-  twMenu.style.bottom=(bar.offsetHeight+6)+'px';
+  resize();
 }
-function hideTwMenu(){ twMenu.classList.remove('open'); selTw=null; }
+function hideTwMenu(){ document.getElementById('barRow').classList.remove('menuMode'); selTw=null; resize(); }
 $('xBtn').onclick=hideTwMenu;
 
 function upgradeCost(tw){ return Math.round(TOWERS[tw.type].cost*0.9*tw.lvl); }
@@ -769,7 +770,7 @@ waveBtn.onclick=()=>{
   gameEvent('wave_reached',{wave:wave,storm:stormMode?1:0});
   if(wave===1){
     $('nerpaBtn').classList.add('rdy');
-    if(localStorage_ok() && !localStorage.getItem('bk_nh')){ showToast(STR.nerpaHint); try{localStorage.setItem('bk_nh','1');}catch(e){} }
+    showToast(STR.nerpaHint);
   }
   if(wave===3) gameEvent('wave_3');
   if(wave%5===0){ fxOmen(); SND.thud(); }
@@ -873,7 +874,7 @@ $('milBtn').onclick=()=>{
   for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,swing:Math.random()*7});
   const [mx,my]=pathPts[pathPts.length-1];
   ring(mx,my,'#e8b45a',CS*1.6);
-  if(localStorage_ok() && !localStorage.getItem('bk_mil')){ showToast(STR.militiaHint); try{localStorage.setItem('bk_mil','1');}catch(e){} }
+  if(!window._milH){ window._milH=1; showToast(STR.militiaHint); }
   window._mu||(window._mu=1,gameEvent('militia_used'));
 };
 $('contBtn').onclick=()=>{ const s=loadSave(); if(!s) return; A(); gameEvent('continue_run',{wave:s.wave}); launch(!!s.storm, s); };
@@ -996,7 +997,7 @@ function update(dtMs){
     if(spawnT<=0){
       const s=spawnQ.shift();
       const b=ENEMIES[s.type];
-      const hp=b.hp*s.hpMul*(s.mega?2.2:1);
+      const hp=b.hp*s.hpMul*(s.mega?1.65:1);
       enemies.push({type:s.type,d:0,hp:hp,maxhp:hp,sp:b.sp*(s.spMul||1)*(stormMode?1.15:1),slow:0,frz:0,mega:!!s.mega,ph:Math.random()*7,flash:0});
       if(s.type==='boss'){ SND.thud(); shakeA=s.mega?6:3; fxBossPlate(s.mega); }
       spawnT=s.gap;
@@ -1014,14 +1015,11 @@ function update(dtMs){
       setTimeout(()=>{ if(state==='play') showToast(STR.giftT); },1200);
       try{ localStorage.setItem('bk_gift','1'); }catch(e){}
     }
-    if(wave>=3 && wave%3===0 && tut===0){
+    if(wave>=3 && wave%3===0){
       const tip=STR.tips[(wave/3-1)%STR.tips.length];
       setTimeout(()=>{ if(state==='play'&&!waveActive) showToast(tip); },1800);
     }
-    if(wave===1 && localStorage_ok() && !localStorage.getItem('bk_tut_up')){
-      setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400);
-      try{ localStorage.setItem('bk_tut_up','1'); }catch(e){}
-    }
+    if(wave===1){ setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400); }
     updHud();
   }
 
@@ -1163,6 +1161,19 @@ function hit(p, ex, ey){
 
 // ================= РОБОТЫ =================
 function drawBot(x,y,ang,ph,b,scale,slowed,type,flash){
+  const spr=EIMG[type];
+  if(spr && spr.complete && spr.naturalWidth){
+    const sz=CS*1.5*scale;
+    const bob=Math.abs(Math.sin(ph*3.2))*sz*0.05;
+    const tilt=Math.sin(ph*3.2)*0.07;
+    ctx.save(); ctx.translate(x,y-bob); ctx.rotate(tilt);
+    ctx.globalAlpha=slowed?0.85:1;
+    ctx.drawImage(spr,-sz/2,-sz*0.62,sz,sz);
+    if(flash>0 && EIMGW[type]){ ctx.globalAlpha=Math.min(1,flash*8); ctx.drawImage(EIMGW[type],-sz/2,-sz*0.62,sz,sz); }
+    if(slowed){ ctx.globalAlpha=0.5; ctx.fillStyle='#7fd8ff'; ctx.beginPath(); ctx.arc(0,0,sz*0.4,0,7); ctx.fill(); }
+    ctx.restore();
+    return;
+  }
   const s=CS*scale;
   const step=Math.sin(ph*11);
   const bounce=Math.abs(Math.sin(ph*11))*s*0.07;
@@ -1295,6 +1306,15 @@ function drawTowerFig(tw,t){
 }
 // спрайты башен: 3 типа × 3 уровня (фолбэк — векторная отрисовка ниже)
 const TIMG={};
+const EIMG={}, EIMGW={};
+['scout','warrior','armored','runner','tank','boss'].forEach(tp=>{
+  const im=new Image(); im.src='./assets/e_'+tp+'.png';
+  im.onload=()=>{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height;
+    const cx=c.getContext('2d'); cx.drawImage(im,0,0); cx.globalCompositeOperation='source-in';
+    cx.fillStyle='#fff'; cx.fillRect(0,0,c.width,c.height); EIMGW[tp]=c; };
+  EIMG[tp]=im;
+});
+const MILIMG=new Image(); MILIMG.src='./assets/militia.png';
 ['archer','frost','fire'].forEach(tp=>{
   TIMG[tp]=[1,2,3].map(l=>{ const im=new Image(); im.src='./assets/'+tp+(l===1?'':l)+'.png'; return im; });
 });
@@ -1678,6 +1698,19 @@ function render(){
   militia.forEach(m=>{
     const [mx,my,ma]=posAt(m.d);
     const sz=CS*0.34, fight=!!m.tgt;
+    if(MILIMG.complete && MILIMG.naturalWidth){
+      const ms=CS*0.85;
+      const bob=Math.abs(Math.sin(m.swing*0.6))*3;
+      const tilt=fight?Math.sin(m.swing)*0.16:0;
+      ctx.save(); ctx.translate(mx,my-bob); ctx.rotate(tilt);
+      ctx.fillStyle='rgba(0,0,0,.3)';
+      ctx.beginPath(); ctx.ellipse(0,ms*0.32+bob,ms*0.3,ms*0.1,0,0,7); ctx.fill();
+      ctx.drawImage(MILIMG,-ms/2,-ms*0.68,ms,ms);
+      ctx.fillStyle='#1a2438'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6,4);
+      ctx.fillStyle='#e8b45a'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6*Math.max(0,m.hp/m.maxhp),4);
+      ctx.restore();
+      return;
+    }
     ctx.save(); ctx.translate(mx,my);
     ctx.fillStyle='rgba(0,0,0,.3)';
     ctx.beginPath(); ctx.ellipse(0,sz*0.85,sz*0.7,sz*0.24,0,0,7); ctx.fill();
