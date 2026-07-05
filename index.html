@@ -140,6 +140,10 @@ button, .tcard { transition:transform .09s ease-out; }
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; }
 #overlay #stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
 #nerpaBtn { position:relative; border:2px solid #4a7fa8; background:#12283f; }
+#milBtn { position:relative; border:2px solid #a8814a; background:#3f2f12; }
+#milBtn .milI { font-size:clamp(18px,5.5vw,24px); line-height:1; }
+#milBtn.rdy { animation:milRdy 1.6s infinite; }
+@keyframes milRdy { 0%,100%{ box-shadow:0 0 0 rgba(255,200,90,0); } 50%{ box-shadow:0 0 16px rgba(255,200,90,.95); } }
 #nerpaBtn .frz { position:absolute; top:-4px; right:-4px; font-size:15px; background:#7fd8ff; color:#052030; border-radius:50%; width:20px; height:20px; line-height:20px; text-align:center; border:2px solid #0e1626; pointer-events:none; }
 #nerpaBtn .frzL { position:absolute; bottom:1px; left:0; right:0; font-size:clamp(7.5px,2.2vw,9.5px); font-weight:800; color:#aee6ff; letter-spacing:1px; pointer-events:none; text-shadow:0 1px 3px #000; }
 #nerpaBtn.rdy { animation:nerpaRdy 1.6s infinite; }
@@ -180,6 +184,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="waveBtn"></button>
     <div id="quick">
       <button id="nerpaBtn"><img src="./assets/nerpa.png" alt=""><span class="frz">❄</span><span class="frzL">ЛЁД</span><span class="cdt" id="nerpaCdT"></span></button>
+      <button id="milBtn"><span class="milI">🛡</span><span class="frzL">РАТЬ</span><span class="cdt" id="milCdT"></span></button>
       <button id="ffBtn"><img src="./assets/ff.png" alt=""><span class="x2l">x2</span></button>
       <button id="sndBtn"><img src="./assets/snd.png" alt="звук"></button>
     </div>
@@ -200,7 +205,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.8</div>
+  <div id="ver">v1.5.9</div>
 </div>
 
 <script type="module">
@@ -215,8 +220,13 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.5.8';
-function gameEvent(name,params){ try{ if(YM_ID && window.ym){ params=params||{}; params.v=GAME_VER; ym(YM_ID,'reachGoal',name,params); } }catch(e){} }
+const GAME_VER='1.5.9';
+let OWNER=false;
+try{
+  if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
+  OWNER = localStorage.getItem('bk_owner')==='1';
+}catch(e){}
+function gameEvent(name,params){ if(OWNER) return; try{ if(YM_ID && window.ym){ params=params||{}; params.v=GAME_VER; ym(YM_ID,'reachGoal',name,params); } }catch(e){} }
 let _errN=0;
 window.addEventListener('error',e=>{ if(_errN++<3) gameEvent('js_error',{m:String(e.message||'').slice(0,90),l:e.lineno||0}); });
 window.addEventListener('unhandledrejection',e=>{ if(_errN++<3) gameEvent('js_error',{m:('promise: '+String(e.reason||'')).slice(0,90)}); });
@@ -299,6 +309,7 @@ const SND={
   sell(){ tone(440,0.12,'triangle',0.08,-180); noiseS(0.08,0.06,1500,600,0.02); },
   die(p){ p=p||1; noiseS(0.14,0.16,2200,300); tone(170*p,0.12,'square',0.06,-110); if(p>1) bell(660*p,0.22,0.05,0.02); },
   thud(){ tone(52,0.5,'sine',0.3,-8); tone(38,0.6,'sine',0.2,-5,0.04); noiseS(0.3,0.12,300,80); },
+  horn(){ tone(147,0.55,'sawtooth',0.09,-30); tone(196,0.5,'sawtooth',0.07,-20,0.08); tone(294,0.4,'square',0.04,0,0.16); },
   leak(){ tone(140,0.4,'sawtooth',0.14,-50); tone(70,0.45,'sine',0.12,-20,0.03); },
   wave(){ [196,247,294].forEach(f=>tone(f,0.55,'sawtooth',0.05,30)); tone(392,0.5,'triangle',0.06,40,0.1); },
   win(){ [523,659,784,1047,1319].forEach((f,i)=>bell(f,0.7,0.09,i*0.13)); },
@@ -445,6 +456,7 @@ const MAXWAVE=15;
 
 let stormMode=false, nerpaCd=0, nerpaCdShown=-1, stats={kills:0,gold:0,t0:0}, lastWin=false;
 let killStreak=0, lastKillT=0, shakeA=0;
+let militia=[], milCd=0, milCdShown=-1, giftArrow=false, revengeB=false;
 let fpsAcc={frames:0,t:0,min:999,sum:0,n:0};
 function fpsTick(dtMs){
   if(state!=='play') return;
@@ -489,6 +501,8 @@ function reset(){
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
   fpsReset();
+  militia=[]; milCd=0; milCdShown=-1; giftArrow=false;
+  $('milCdT').textContent=''; $('milBtn').classList.remove('cd'); $('milBtn').classList.remove('rdy');
   tut = (localStorage_ok() && localStorage.getItem('bk_tut2')) ? 0 : 1;
   tutCell = null; lastBadToast = 0;
   ffBtn.classList.remove('on');
@@ -676,6 +690,7 @@ upBtn.onclick=()=>{
   const cost=upgradeCost(tw);
   if(money<cost||tw.lvl>=3) return;
   money-=cost; tw.lvl++; SND.up();
+  giftArrow=false;
   tw.born=0.22;
   window._fu||(window._fu=1,gameEvent('tower_upgrade'));
   const ux=offX+(tw.c+0.5)*CS, uy=offY+(tw.r+0.5)*CS;
@@ -821,7 +836,7 @@ function endGame(win){
     '<span>'+STR.statGold+'</span><b>'+stats.gold+' 🐟</b>'+
     '<span>'+STR.statLives+'</span><b>♥ '+lives+'/'+maxL+'</b>'+
     '<span>'+STR.statTime+'</span><b>'+tm+'</b>';
-  $('startBtn').textContent=STR.again;
+  $('startBtn').textContent=win?STR.again:STR.revBtn;
   $('shareBtn').textContent=STR.share; $('shareBtn').style.display='block';
   $('stormBtn').textContent=STR.storm;
   $('stormBtn').style.display=stormUnlocked?'block':'none';
@@ -834,6 +849,7 @@ function launch(storm, save){
     wave=save.wave; money=save.money; lives=save.lives; tut=0; tutCell=null;
     save.towers.forEach(t=>{ if(TOWERS[t.type]&&!pathSet.has(t.c+','+t.r)) towers.push({type:t.type,c:t.c,r:t.r,lvl:Math.min(3,t.lvl||1),cd:0,anim:0,ang:-Math.PI/2,born:0}); });
   } else clearSave();
+  if(!save && revengeB){ money+=50; revengeB=false; setTimeout(()=>showToast(STR.revToast),700); }
   musSwitch(storm?'storm':'btl');
   overlay.classList.add('hidden');
   overlay.classList.remove('defeat');
@@ -845,6 +861,18 @@ function launch(storm, save){
   updHud(); updTut();
 }
 $('stormBtn').onclick=()=>{ A(); gameEvent('storm_start'); launch(true); };
+$('milBtn').onclick=()=>{
+  if(state!=='play'||milCd>0||!enemies.length) return;
+  A(); SND.horn();
+  $('milBtn').classList.remove('rdy');
+  milCd=45; milCdShown=-1;
+  const hp=Math.round(110*(1+0.12*wave));
+  for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,life:30,swing:Math.random()*7});
+  const [mx,my]=pathPts[pathPts.length-1];
+  ring(mx,my,'#e8b45a',CS*1.6);
+  if(localStorage_ok() && !localStorage.getItem('bk_mil')){ showToast(STR.militiaHint); try{localStorage.setItem('bk_mil','1');}catch(e){} }
+  window._mu||(window._mu=1,gameEvent('militia_used'));
+};
 $('contBtn').onclick=()=>{ const s=loadSave(); if(!s) return; A(); gameEvent('continue_run',{wave:s.wave}); launch(!!s.storm, s); };
 $('shareBtn').onclick=async ()=>{
   A(); gameEvent('share_click');
@@ -856,7 +884,7 @@ $('shareBtn').onclick=async ()=>{
 $('startBtn').onclick=()=>{
   A();
   gameEvent(state==='menu'?'game_start':'replay');
-  launch(false);
+  launch(state!=='menu'&&stormMode);
 };
 
 // ================= ЭФФЕКТЫ =================
@@ -977,6 +1005,12 @@ function update(dtMs){
     if(wave>=MAXWAVE){ endGame(true); return; }
     saveGame();
     fxWaveClear(wave,bonus);
+    if(wave===2 && towers.some(tw=>tw.lvl<3) && localStorage_ok() && !localStorage.getItem('bk_gift')){
+      money+=40; SND.coin();
+      giftArrow=true;
+      setTimeout(()=>{ if(state==='play') showToast(STR.giftT); },1200);
+      try{ localStorage.setItem('bk_gift','1'); }catch(e){}
+    }
     if(wave===1 && localStorage_ok() && !localStorage.getItem('bk_tut_up')){
       setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400);
       try{ localStorage.setItem('bk_tut_up','1'); }catch(e){}
@@ -984,11 +1018,29 @@ function update(dtMs){
     updHud();
   }
 
+  // рать: движение навстречу и ближний бой
+  enemies.forEach(e=>e.blk=false);
+  const EDPS={scout:22,runner:22,warrior:30,armored:35,tank:55,boss:90};
+  for(let mi=militia.length-1;mi>=0;mi--){
+    const m=militia[mi]; m.life-=dt; m.swing+=dt*8;
+    m.tgt=null;
+    for(const e of enemies){ if(e.hp>0 && Math.abs(e.d-m.d)<CS*0.4){ m.tgt=e; break; } }
+    if(m.tgt){
+      m.tgt.blk=true;
+      m.tgt.hp-=m.dps*dt; m.tgt.flash=Math.max(m.tgt.flash,0.06);
+      m.hp-=(EDPS[m.tgt.type]||25)*(m.tgt.mega?2:1)*dt;
+    } else if(m.d>CS*0.5){ m.d-=m.sp*(CS/44)*dt; }
+    if(m.hp<=0||m.life<=0){
+      const [px,py]=posAt(m.d);
+      puff(px,py,'#e8b45a',6,150);
+      militia.splice(mi,1);
+    }
+  }
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     if(e.slow>0) e.slow-=dt;
     if(e.flash>0) e.flash-=dt;
-    if(e.frz>0){ e.frz-=dt; } else e.d+=e.sp*(e.slow>0?0.45:1)*(CS/44)*dt;
+    if(e.frz>0){ e.frz-=dt; } else if(!e.blk) e.d+=e.sp*(e.slow>0?0.45:1)*(CS/44)*dt;
     if(e.d>=pathLen){
       enemies.splice(i,1);
       SND.leak();
@@ -1003,6 +1055,11 @@ function update(dtMs){
     nerpaCd=Math.max(0,nerpaCd-dt);
     const sec=Math.ceil(nerpaCd);
     if(sec!==nerpaCdShown){ nerpaCdShown=sec; $('nerpaCdT').textContent=sec||''; $('nerpaBtn').classList.toggle('cd',sec>0); if(sec===0&&state==='play') $('nerpaBtn').classList.add('rdy'); }
+  }
+  if(milCd>0){
+    milCd=Math.max(0,milCd-dt);
+    const ms=Math.ceil(milCd);
+    if(ms!==milCdShown){ milCdShown=ms; $('milCdT').textContent=ms||''; $('milBtn').classList.toggle('cd',ms>0); if(ms===0&&state==='play') $('milBtn').classList.add('rdy'); }
   }
   towers.forEach(tw=>{
     tw.cd-=dt;
@@ -1609,6 +1666,50 @@ function render(){
     ctx.fillText(q.str,q.x,q.y);
     ctx.globalAlpha=1;
   });
+
+  // рать на поле
+  militia.forEach(m=>{
+    const [mx,my,ma]=posAt(m.d);
+    const sz=CS*0.34, fight=!!m.tgt;
+    ctx.save(); ctx.translate(mx,my);
+    ctx.fillStyle='rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(0,sz*0.85,sz*0.7,sz*0.24,0,0,7); ctx.fill();
+    // тело — дэгэл
+    ctx.fillStyle='#b06a34'; ctx.strokeStyle=OUT; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(0,sz*0.25,sz*0.55,sz*0.7,0,0,7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#e8b45a';
+    ctx.fillRect(-sz*0.12,-sz*0.2,sz*0.24,sz*0.85);
+    // голова + меховая шапка
+    ctx.fillStyle='#e8b48c';
+    ctx.beginPath(); ctx.arc(0,-sz*0.55,sz*0.42,0,7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#5a4632';
+    ctx.beginPath(); ctx.arc(0,-sz*0.72,sz*0.44,Math.PI,0); ctx.fill(); ctx.stroke();
+    // меч: замах в бою, у ноги в походе
+    const sw=fight?Math.sin(m.swing)*0.9:0.5;
+    ctx.save(); ctx.translate(sz*0.5,-sz*0.1); ctx.rotate(-0.6+sw);
+    ctx.strokeStyle='#d8e0ea'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(sz*0.85,-sz*0.4); ctx.stroke();
+    ctx.restore();
+    // hp
+    ctx.fillStyle='#1a2438'; ctx.fillRect(-sz*0.6,-sz*1.35,sz*1.2,4);
+    ctx.fillStyle='#e8b45a'; ctx.fillRect(-sz*0.6,-sz*1.35,sz*1.2*Math.max(0,m.hp/m.maxhp),4);
+    ctx.restore();
+  });
+
+  // подарочная стрелка «Усиль!» над башней
+  if(giftArrow && state==='play'){
+    const cand=towers.filter(tw=>tw.lvl<3).sort((a,b)=>upgradeCost(a)-upgradeCost(b))[0];
+    if(cand){
+      const gx=offX+(cand.c+0.5)*CS, gy=offY+(cand.r+0.5)*CS-CS*0.95-Math.abs(Math.sin(t*4.5))*10;
+      ctx.save();
+      ctx.fillStyle='#ffd23c'; ctx.strokeStyle=OUT; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(gx,gy+16); ctx.lineTo(gx+12,gy); ctx.lineTo(gx+4,gy); ctx.lineTo(gx+4,gy-16); ctx.lineTo(gx-4,gy-16); ctx.lineTo(gx-4,gy); ctx.lineTo(gx-12,gy); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.font='bold '+Math.round(CS*0.3)+'px RussoOne,sans-serif'; ctx.textAlign='center';
+      ctx.strokeText(STR.giftA,gx,gy-24); ctx.fillStyle='#ffd23c'; ctx.fillText(STR.giftA,gx,gy-24);
+      ctx.restore();
+    }
+  }
 
   drawFxs(t);
 
