@@ -498,7 +498,7 @@ function pickTutCell(){
 }
 
 function reset(){
-  money=stormMode?120:140; lives=stormMode?5:10; wave=0; waveActive=false;
+  money=stormMode?130:160; lives=stormMode?7:15; wave=0; waveActive=false;
   nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd'); $('nerpaBtn').classList.remove('rdy');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
@@ -817,7 +817,7 @@ function endGame(win){
   }
   else { $('ovT1').textContent=STR.loseT1; $('ovT2').textContent=STR.loseT2; $('ovP').textContent=STR.loseP.replace('{w}',wave); }
   // звёзды (только при победе)
-  const maxL=stormMode?5:10;
+  const maxL=stormMode?7:15;
   const nStars=win?(lives>=maxL?3:lives>=maxL*0.6?2:1):0;
   const stEl=$('ovStars');
   stEl.innerHTML = win ? [1,2,3].map(i=>'<span class="'+(i<=nStars?'':'off')+'">★</span>').join('') : '';
@@ -865,11 +865,12 @@ function launch(storm, save){
 $('stormBtn').onclick=()=>{ A(); gameEvent('storm_start'); launch(true); };
 $('milBtn').onclick=()=>{
   if(state!=='play'||milCd>0||!enemies.length) return;
+  if(militia.length>=6){ showToast(STR.milFull); return; }
   A(); SND.horn();
   $('milBtn').classList.remove('rdy');
   milCd=45; milCdShown=-1;
   const hp=Math.round(110*(1+0.12*wave));
-  for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,life:30,swing:Math.random()*7});
+  for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,swing:Math.random()*7});
   const [mx,my]=pathPts[pathPts.length-1];
   ring(mx,my,'#e8b45a',CS*1.6);
   if(localStorage_ok() && !localStorage.getItem('bk_mil')){ showToast(STR.militiaHint); try{localStorage.setItem('bk_mil','1');}catch(e){} }
@@ -1013,6 +1014,10 @@ function update(dtMs){
       setTimeout(()=>{ if(state==='play') showToast(STR.giftT); },1200);
       try{ localStorage.setItem('bk_gift','1'); }catch(e){}
     }
+    if(wave>=3 && wave%3===0 && tut===0){
+      const tip=STR.tips[(wave/3-1)%STR.tips.length];
+      setTimeout(()=>{ if(state==='play'&&!waveActive) showToast(tip); },1800);
+    }
     if(wave===1 && localStorage_ok() && !localStorage.getItem('bk_tut_up')){
       setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400);
       try{ localStorage.setItem('bk_tut_up','1'); }catch(e){}
@@ -1024,7 +1029,7 @@ function update(dtMs){
   enemies.forEach(e=>e.blk=false);
   const EDPS={scout:22,runner:22,warrior:30,armored:35,tank:55,boss:90};
   for(let mi=militia.length-1;mi>=0;mi--){
-    const m=militia[mi]; m.life-=dt; m.swing+=dt*8;
+    const m=militia[mi]; m.swing+=dt*8;
     m.tgt=null;
     for(const e of enemies){ if(e.hp>0 && Math.abs(e.d-m.d)<CS*0.4){ m.tgt=e; break; } }
     if(m.tgt){
@@ -1032,7 +1037,7 @@ function update(dtMs){
       m.tgt.hp-=m.dps*dt; m.tgt.flash=Math.max(m.tgt.flash,0.06);
       m.hp-=(EDPS[m.tgt.type]||25)*(m.tgt.mega?2:1)*dt;
     } else if(m.d>CS*0.5){ m.d-=m.sp*(CS/44)*dt; }
-    if(m.hp<=0||m.life<=0){
+    if(m.hp<=0){
       const [px,py]=posAt(m.d);
       puff(px,py,'#e8b45a',6,150);
       militia.splice(mi,1);
@@ -1145,7 +1150,7 @@ function hit(p, ex, ey){
       killStreak=(now-lastKillT<1.5)?killStreak+1:0; lastKillT=now;
       SND.die(Math.pow(2,Math.min(killStreak,8)/12));
       stats.kills++;
-      const rw=Math.max(1,Math.round(ENEMIES[e.type].rw*Math.pow(0.95,wave-1)*(stormMode?0.75:1)))*(e.mega?3:1);
+      const rw=Math.max(1,Math.round(ENEMIES[e.type].rw*Math.pow(0.96,wave-1)*(stormMode?0.75:1)))*(e.mega?3:1);
       dmgNum(x,y-CS*0.2,'+'+rw+'🐟','#ffd23c');
       if(e.type==='boss'){ SND.thud(); shakeA=e.mega?7:4; }
       stats.gold+=rw;
