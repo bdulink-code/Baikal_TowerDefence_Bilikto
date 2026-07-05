@@ -172,17 +172,16 @@ button, .tcard { transition:transform .09s ease-out; }
   <div><span class="lbl" id="lblWave"></span><span id="wave">0</span>/15</div>
 </div>
 
-<div id="twMenu">
-  <span class="ttl" id="twTitle"></span>
-  <button id="upBtn"></button>
-  <button id="sellBtn"></button>
-  <button id="xBtn">✕</button>
-</div>
-
 <div id="hint"></div>
 
 <div id="bar" class="hidden">
   <div id="barRow">
+    <div id="twMenu">
+      <span class="ttl" id="twTitle"></span>
+      <button id="upBtn"></button>
+      <button id="sellBtn"></button>
+      <button id="xBtn">✕</button>
+    </div>
     <div id="cards"></div>
     <button id="waveBtn"></button>
     <div id="quick">
@@ -208,7 +207,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.11</div>
+  <div id="ver">v1.5.12</div>
 </div>
 
 <script type="module">
@@ -223,7 +222,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.5.11';
+const GAME_VER='1.5.12';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -503,6 +502,7 @@ function reset(){
   nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd'); $('nerpaBtn').classList.remove('rdy');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
+  document.getElementById('barRow').classList.remove('menuMode');
   fpsReset();
   militia=[]; milCd=0; milCdShown=-1; giftArrow=false;
   $('milCdT').textContent=''; $('milBtn').classList.remove('cd'); $('milBtn').classList.remove('rdy');
@@ -1164,9 +1164,14 @@ function drawBot(x,y,ang,ph,b,scale,slowed,type,flash){
   const spr=EIMG[type];
   if(spr && spr.complete && spr.naturalWidth){
     const sz=CS*1.5*scale;
-    const bob=Math.abs(Math.sin(ph*3.2))*sz*0.05;
-    const tilt=Math.sin(ph*3.2)*0.07;
-    ctx.save(); ctx.translate(x,y-bob); ctx.rotate(tilt);
+    const stp=Math.sin(ph*9);
+    const bob=Math.abs(stp)*sz*0.055;
+    const tilt=stp*0.055;
+    const flp=Math.cos(ang)<-0.05?-1:1;
+    // тень на земле — не прыгает вместе с роботом
+    ctx.fillStyle='rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.ellipse(x,y+sz*0.34,sz*0.28,sz*0.085,0,0,7); ctx.fill();
+    ctx.save(); ctx.translate(x,y-bob); ctx.scale(flp,1); ctx.rotate(tilt);
     ctx.globalAlpha=slowed?0.85:1;
     ctx.drawImage(spr,-sz/2,-sz*0.62,sz,sz);
     if(flash>0 && EIMGW[type]){ ctx.globalAlpha=Math.min(1,flash*8); ctx.drawImage(EIMGW[type],-sz/2,-sz*0.62,sz,sz); }
@@ -1702,12 +1707,15 @@ function render(){
       const ms=CS*0.85;
       const bob=Math.abs(Math.sin(m.swing*0.6))*3;
       const tilt=fight?Math.sin(m.swing)*0.16:0;
-      ctx.save(); ctx.translate(mx,my-bob); ctx.rotate(tilt);
+      let mflp=1;
+      if(fight&&m.tgt){ const tp=posAt(m.tgt.d); mflp=tp[0]<mx?-1:1; }
+      ctx.save(); ctx.translate(mx,my-bob);
       ctx.fillStyle='rgba(0,0,0,.3)';
       ctx.beginPath(); ctx.ellipse(0,ms*0.32+bob,ms*0.3,ms*0.1,0,0,7); ctx.fill();
-      ctx.drawImage(MILIMG,-ms/2,-ms*0.68,ms,ms);
       ctx.fillStyle='#1a2438'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6,4);
       ctx.fillStyle='#e8b45a'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6*Math.max(0,m.hp/m.maxhp),4);
+      ctx.scale(mflp,1); ctx.rotate(tilt);
+      ctx.drawImage(MILIMG,-ms/2,-ms*0.68,ms,ms);
       ctx.restore();
       return;
     }
