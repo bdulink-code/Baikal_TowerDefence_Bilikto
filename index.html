@@ -207,7 +207,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.12</div>
+  <div id="ver">v1.5.13</div>
 </div>
 
 <script type="module">
@@ -222,7 +222,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.5.12';
+const GAME_VER='1.5.13';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -742,6 +742,14 @@ cv.addEventListener('pointerup',e=>{
   if(tw) showTwMenu(tw);
   else hideTwMenu();
 });
+
+// закрытие меню башни тапом в ЛЮБОЕ место вне самого меню и вне игрового поля
+document.addEventListener('pointerdown',e=>{
+  if(!selTw) return;
+  if(e.target.closest('#twMenu')) return;   // клик по кнопкам меню — не закрываем
+  if(e.target.closest('#c')) return;        // поле обрабатывает клетки само (см. выше)
+  hideTwMenu();
+},true);
 
 // ================= ВОЛНЫ =================
 function buildWave(n){
