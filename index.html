@@ -40,12 +40,13 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
   position:fixed; bottom:0; left:0; right:0; z-index:6;
   background:linear-gradient(180deg, rgba(20,30,51,.0), #141e33 22%);
   padding:6px 8px calc(8px + env(safe-area-inset-bottom,0));
+  max-height:26vh;
 }
-#quick { display:flex; flex-direction:column; gap:6px; justify-content:stretch; }
-#quick button { flex:1; width:clamp(46px,14vw,64px); border-radius:14px; padding:5px; }
+#quick { display:grid; grid-template-columns:1fr 1fr; gap:6px; align-content:end; }
+#quick button { width:clamp(44px,12.5vw,58px); height:clamp(44px,12.5vw,58px); border-radius:14px; padding:4px; }
 #quick img { width:100%; height:100%; object-fit:contain; pointer-events:none; }
 #quick button.mutedBtn img { filter:grayscale(1) brightness(.55); }
-#barRow { display:flex; gap:8px; align-items:stretch; max-width:520px; margin:0 auto; }
+#barRow { display:flex; gap:8px; align-items:flex-end; max-width:520px; margin:0 auto; }
 #cards { flex:1; }
 #waveBtn { width:clamp(84px,26vw,112px); background:#ffd23c; color:#1a1400; font-size:clamp(13px,4vw,17px); line-height:1.2; padding:8px; border-radius:16px; box-shadow:0 4px 14px rgba(255,210,60,.35); }
 #waveBtn:disabled { background:#3a4560; color:#8fa3c8; box-shadow:none; }
@@ -62,6 +63,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #cards { display:flex; gap:6px; }
 .tcard {
   flex:1; background:#1d2a45; border-radius:14px; padding:8px 4px 7px;
+  max-height:clamp(112px,30vw,148px); align-self:flex-end;
   text-align:center; color:#e8f0ff; border:2.5px solid #2c3d61; position:relative;
   transition:transform .08s; touch-action:none;
 }
@@ -184,7 +186,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="waveBtn"></button>
     <div id="quick">
       <button id="nerpaBtn"><img src="./assets/nerpa.png" alt=""><span class="frz">❄</span><span class="frzL">ЛЁД</span><span class="cdt" id="nerpaCdT"></span></button>
-      <button id="milBtn"><span class="milI">🛡</span><span class="frzL">РАТЬ</span><span class="cdt" id="milCdT"></span></button>
+      <button id="milBtn"><span class="milI">🛡</span><span class="frzL">ПОДМОГА</span><span class="cdt" id="milCdT"></span></button>
       <button id="ffBtn"><img src="./assets/ff.png" alt=""><span class="x2l">x2</span></button>
       <button id="sndBtn"><img src="./assets/snd.png" alt="звук"></button>
     </div>
@@ -205,7 +207,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.9</div>
+  <div id="ver">v1.5.10</div>
 </div>
 
 <script type="module">
@@ -1524,7 +1526,7 @@ function render(){
     if(NERPA.complete && NERPA.naturalWidth){
       const bobN=Math.sin(t*1.8)*CS*0.04;
       const nsz=CS*1.35;
-      NERPAP={x:gx-nsz*0.62, y:gy-nsz*0.62+bobN, s:nsz};
+      NERPAP={x:gx-nsz*0.62, y:gy-nsz*0.78+bobN, s:nsz};
     }
   }
 
