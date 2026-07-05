@@ -200,7 +200,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.7</div>
+  <div id="ver">v1.5.8</div>
 </div>
 
 <script type="module">
@@ -215,7 +215,11 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-function gameEvent(name,params){ try{ if(YM_ID && window.ym) ym(YM_ID,'reachGoal',name,params||{}); }catch(e){} }
+const GAME_VER='1.5.8';
+function gameEvent(name,params){ try{ if(YM_ID && window.ym){ params=params||{}; params.v=GAME_VER; ym(YM_ID,'reachGoal',name,params); } }catch(e){} }
+let _errN=0;
+window.addEventListener('error',e=>{ if(_errN++<3) gameEvent('js_error',{m:String(e.message||'').slice(0,90),l:e.lineno||0}); });
+window.addEventListener('unhandledrejection',e=>{ if(_errN++<3) gameEvent('js_error',{m:('promise: '+String(e.reason||'')).slice(0,90)}); });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
 setTimeout(()=>gameEvent('session_3min'),180000);
 setTimeout(()=>gameEvent('session_10min'),600000);
@@ -441,6 +445,21 @@ const MAXWAVE=15;
 
 let stormMode=false, nerpaCd=0, nerpaCdShown=-1, stats={kills:0,gold:0,t0:0}, lastWin=false;
 let killStreak=0, lastKillT=0, shakeA=0;
+let fpsAcc={frames:0,t:0,min:999,sum:0,n:0};
+function fpsTick(dtMs){
+  if(state!=='play') return;
+  fpsAcc.frames++; fpsAcc.t+=dtMs;
+  if(fpsAcc.t>=1000){
+    const f=Math.round(fpsAcc.frames*1000/fpsAcc.t);
+    fpsAcc.min=Math.min(fpsAcc.min,f); fpsAcc.sum+=f; fpsAcc.n++;
+    fpsAcc.frames=0; fpsAcc.t=0;
+  }
+}
+function fpsReport(){
+  if(fpsAcc.n<5) return; // партии короче 5с не шлём
+  gameEvent('fps',{avg:Math.round(fpsAcc.sum/fpsAcc.n),min:fpsAcc.min,wave:wave});
+}
+function fpsReset(){ fpsAcc={frames:0,t:0,min:999,sum:0,n:0}; }
 let stormUnlocked=false;
 let state='menu', money, lives, wave, waveActive, towers, enemies, projs, parts, corpses, dmgTxt, spawnQ, spawnT, selCard=null, selTw=null, gs=1, gt=0, badCell=null;
 let fxs=[];
@@ -469,6 +488,7 @@ function reset(){
   nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd'); $('nerpaBtn').classList.remove('rdy');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
+  fpsReset();
   tut = (localStorage_ok() && localStorage.getItem('bk_tut2')) ? 0 : 1;
   tutCell = null; lastBadToast = 0;
   ffBtn.classList.remove('on');
@@ -580,7 +600,7 @@ addEventListener('pointerup',e=>{
     if(cell && canPlace(cell[0],cell[1])) place(drag.type,cell[0],cell[1]);
     else if(cell){ SND.bad(); badCell={c:cell[0],r:cell[1],t:0.3};
       const now=performance.now();
-      if(now-lastBadToast>2500){ lastBadToast=now; showToast(pathSet.has(cell[0]+','+cell[1])?STR.tutRoad:STR.tutBusy); } }
+      if(now-lastBadToast>2500){ lastBadToast=now; const road=pathSet.has(cell[0]+','+cell[1]); showToast(road?STR.tutRoad:STR.tutBusy); if(road&&tut>0) gameEvent('tut_road_block'); } }
   }
   drag=null;
 });
@@ -602,7 +622,8 @@ function place(type,c,r){
   money-=base.cost;
   towers.push({type,c,r,lvl:1,cd:0,anim:0,ang:-Math.PI/2,born:0.35});
   gameEvent('tower_built',{type:type,wave:wave});
-  if(towers.length===1) gameEvent('first_tower');
+  if(towers.length===1) gameEvent('first_tower',{t:Math.round((performance.now()-stats.t0)/1000)});
+  if(tut===1 && tutCell && c===tutCell[0] && r===tutCell[1]) gameEvent('tut_target_hit');
   SND.place();
   ring(offX+(c+0.5)*CS, offY+(r+0.5)*CS, '#ffd23c', base.rng*CS);
   if(selCard && money<TOWERS[selCard].cost) selCard=null;
@@ -683,7 +704,7 @@ $('nerpaBtn').onclick=()=>{
   ring(nx,ny,'#7fd8ff',CS*2.2); ring(nx,ny,'#aef7e8',CS*3.4);
   window._nu||(window._nu=1,gameEvent('nerpa_used'));
 };
-sndBtn.onclick=()=>{ muted=!muted; sndBtn.classList.toggle('mutedBtn',muted); if(MUSF.gain) MUSF.gain.gain.value=muted?0:0.55; if(!muted){ A(); SND.coin(); } };
+sndBtn.onclick=()=>{ muted=!muted; gameEvent(muted?'sound_off':'sound_on'); sndBtn.classList.toggle('mutedBtn',muted); if(MUSF.gain) MUSF.gain.gain.value=muted?0:0.55; if(!muted){ A(); SND.coin(); } };
 
 cv.addEventListener('pointerup',e=>{
   if(state!=='play' || (drag&&drag.moved)) return;
@@ -746,6 +767,7 @@ function endGame(win){
   state=win?'win':'over';
   gameEvent(win?'win':'lose',{wave:wave,towers:towers.length,lives:lives,storm:stormMode?1:0});
   gameEvent(win?'game_win':'game_lose',{wave:wave,storm:stormMode?1:0});
+  fpsReport();
   clearSave(); $('contBtn').style.display='none';
   const reached=win?MAXWAVE:wave, prevBest=bestGet(stormMode), isNew=reached>prevBest;
   if(isNew) bestSet(stormMode,reached);
@@ -1634,6 +1656,7 @@ if(dev) $('dev').style.display='block';
 function frame(now){
   requestAnimationFrame(frame);
   if(paused) return;
+  fpsTick(now-last);
   acc+=now-last; last=now;
   if(acc>250) acc=250;
   while(acc>=STEP){ update(STEP); acc-=STEP; }
