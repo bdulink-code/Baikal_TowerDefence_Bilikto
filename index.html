@@ -68,7 +68,7 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
   transition:transform .08s; touch-action:none;
 }
 .tcard .ico { width:clamp(36px,10.5vw,52px); height:clamp(36px,10.5vw,52px); border-radius:10px; display:block; margin:0 auto 2px; pointer-events:none; object-fit:cover; }
-.tcard .nm { font-size:clamp(9px,2.7vw,11.5px); font-weight:800; display:block; margin-top:1px; pointer-events:none; }
+.tcard .nm { font-size:clamp(9px,2.7vw,11.5px); font-weight:800; display:flex; align-items:center; justify-content:center; height:2.4em; line-height:1.05; margin-top:1px; pointer-events:none; }
 .tcard .pr { font-size:clamp(10px,3vw,13px); font-weight:800; color:#ffd23c; display:block; pointer-events:none; }
 .tcard.selected { border-color:#ffd23c; background:#2a3a5e; transform:translateY(-4px); box-shadow:0 6px 14px rgba(255,210,60,.25); }
 .tcard.off { opacity:.4; }
@@ -82,15 +82,17 @@ button, .tcard { transition:transform .09s ease-out; }
 /* v1.6: плавающее меню башни ПОВЕРХ поля (не в баре — бар больше не мутирует) */
 #twMenu {
   position:absolute; z-index:40; display:none;
-  flex-direction:column; gap:5px; align-items:stretch;
+  flex-direction:column; gap:6px; align-items:stretch;
   background:rgba(20,30,50,.94); border:2px solid #3d5378; border-radius:14px;
-  padding:8px; min-width:132px; box-shadow:0 8px 24px rgba(0,0,0,.5);
+  padding:8px; min-width:150px; box-shadow:0 8px 24px rgba(0,0,0,.5);
   transform:translate(-50%,-50%); pointer-events:auto;
 }
 #twMenu.on { display:flex; }
 #twMenu .ttl { color:#e8f0ff; font-weight:800; font-size:12.5px; text-align:center; padding:1px 2px 3px; white-space:nowrap; }
-#twMenu button { padding:9px 12px; font-size:13px; border-radius:10px; }
-#twMenu #xBtn { padding:4px; font-size:11px; background:#2a3550; color:#9fb2d4; align-self:center; width:28px; height:24px; border-radius:8px; }
+#twMenu button { min-height:52px; padding:10px 14px; font-size:14px; font-weight:800; border-radius:12px; }
+/* Продать отодвинута вниз доп. отступом — чтобы не тапнуть случайно вместо Улучшить */
+#twMenu #sellBtn { margin-top:10px; }
+#twMenu #xBtn { min-height:0; padding:6px; font-size:12px; font-weight:700; background:#2a3550; color:#9fb2d4; align-self:center; width:40px; height:34px; border-radius:9px; margin-top:2px; }
 #upBtn { background:#4caf78; color:#04140b; }
 #upBtn:disabled { background:#3a4560; color:#8fa3c8; }
 #sellBtn { background:#334261; color:#c8d6f2; }
@@ -211,7 +213,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.6.2</div>
+  <div id="ver">v1.6.3</div>
 </div>
 
 <script type="module">
@@ -306,7 +308,7 @@ function noiseS(dur,vol=0.2,fc=800,hp=0,delay=0){
   src.start(t0);
 }
 const SND={
-  shoot(){ noiseS(0.06,0.10,3200,900); tone(520,0.05,'triangle',0.05,-260,0,0.05); },
+  shoot(){ noiseS(0.06,0.055,3200,900); tone(520,0.05,'triangle',0.03,-260,0,0.05); },
   ice(){ bell(1568,0.5,0.07); tone(2093,0.3,'sine',0.03,-500,0.02); },
   boom(){ noiseS(0.4,0.30,1400); tone(95,0.35,'sine',0.26,-60); tone(60,0.5,'sine',0.14,-25,0.02); },
   coin(){ bell(1319,0.35,0.07); bell(1760,0.4,0.06,0.07); },
@@ -1154,7 +1156,7 @@ function hit(p, ex, ey){
     puff(ex,ey,'#ff7a3c',8,200); puff(ex,ey,'#ffd23c',6,160);
   }
   victims.forEach(e=>{
-    e.hp-=p.dmg; e.flash=0.12;
+    e.hp-=p.dmg; e.flash=0.09;
     if(e.type!=='boss'&&e.type!=='tank'&&e.type!=='armored') e.d=Math.max(0,e.d-CS*0.045);
     dmgNum(ex,ey,p.dmg, p.type==='fire'?'#ff9a5c':p.type==='frost'?'#a8e4ff':'#ffe08a');
     if(p.slow){ e.slow=1.6; ring(ex,ey,'#7fd8ff',CS*0.4); }
@@ -1194,7 +1196,7 @@ function drawBot(x,y,ang,ph,b,scale,slowed,type,flash){
     ctx.save(); ctx.translate(x,y-bob); ctx.scale(flp,1); ctx.rotate(tilt);
     ctx.globalAlpha=slowed?0.85:1;
     ctx.drawImage(spr,-sz/2,-sz*0.62,sz,sz);
-    if(flash>0 && EIMGW[type]){ ctx.globalAlpha=Math.min(1,flash*8); ctx.drawImage(EIMGW[type],-sz/2,-sz*0.62,sz,sz); }
+    if(flash>0 && EIMGW[type]){ ctx.globalAlpha=Math.min(0.55,flash*4); ctx.drawImage(EIMGW[type],-sz/2,-sz*0.62,sz,sz); }
     if(slowed){ ctx.globalAlpha=0.5; ctx.fillStyle='#7fd8ff'; ctx.beginPath(); ctx.arc(0,0,sz*0.4,0,7); ctx.fill(); }
     ctx.restore();
     return;
@@ -1312,7 +1314,7 @@ function drawBot(x,y,ang,ph,b,scale,slowed,type,flash){
 
   // вспышка урона
   if(flash>0){
-    ctx.globalAlpha=Math.min(1,flash*8)*0.75;
+    ctx.globalAlpha=Math.min(0.55,flash*4)*0.75;
     ctx.fillStyle='#fff';
     ctx.beginPath(); ctx.roundRect(-s*0.4,hy-s*0.24,s*0.8,s*1.05,s*0.16); ctx.fill();
     ctx.globalAlpha=1;
@@ -1733,6 +1735,7 @@ function render(){
       const tilt=fight?Math.sin(m.swing)*0.16:0;
       let mflp=1;
       if(fight&&m.tgt){ const tp=posAt(m.tgt.d); mflp=tp[0]<mx?-1:1; }
+      else { mflp = Math.cos(ma)>0.05 ? -1 : 1; }  // в походе militia идёт d--, навстречу углу пути → знак инвертирован относительно врагов
       ctx.save(); ctx.translate(mx,my-bob);
       ctx.fillStyle='rgba(0,0,0,.3)';
       ctx.beginPath(); ctx.ellipse(0,ms*0.32+bob,ms*0.3,ms*0.1,0,0,7); ctx.fill();
