@@ -207,7 +207,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.5.13</div>
+  <div id="ver">v1.5.14</div>
 </div>
 
 <script type="module">
@@ -222,7 +222,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.5.13';
+const GAME_VER='1.5.14';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -895,7 +895,8 @@ $('shareBtn').onclick=async ()=>{
 };
 $('startBtn').onclick=()=>{
   A();
-  gameEvent(state==='menu'?'game_start':'replay');
+  gameEvent(state==='menu'?'game_start':(lastWin?'replay':'revenge_click'),
+            state==='menu'?{}:{wave:wave, storm:stormMode?1:0});
   launch(state!=='menu'&&stormMode);
 };
 
