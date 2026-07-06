@@ -211,7 +211,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.6.0</div>
+  <div id="ver">v1.6.1</div>
 </div>
 
 <script type="module">
@@ -226,7 +226,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.6.0';
+const GAME_VER='1.6.1';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -890,7 +890,7 @@ $('milBtn').onclick=()=>{
   $('milBtn').classList.remove('rdy');
   milCd=45; milCdShown=-1;
   const hp=Math.round(110*(1+0.12*wave));
-  for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,swing:Math.random()*7});
+  for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,swing:Math.random()*7,beast:i%3});
   const [mx,my]=pathPts[pathPts.length-1];
   ring(mx,my,'#e8b45a',CS*1.6);
   if(!window._milH){ window._milH=1; showToast(STR.militiaHint); }
@@ -1340,6 +1340,8 @@ const EIMG={}, EIMGW={};
   EIMG[tp]=im;
 });
 const MILIMG=new Image(); MILIMG.src='./assets/militia.png';
+// Звери Байкала (подмога): 0=медведь-танк, 1=соболь-разведчик, 2=волк-боец
+const BEASTIMG=['bear','sable','wolf'].map(n=>{ const im=new Image(); im.src='./assets/beast_'+n+'.png'; return im; });
 ['archer','frost','fire'].forEach(tp=>{
   TIMG[tp]=[1,2,3].map(l=>{ const im=new Image(); im.src='./assets/'+tp+(l===1?'':l)+'.png'; return im; });
 });
@@ -1723,7 +1725,9 @@ function render(){
   militia.forEach(m=>{
     const [mx,my,ma]=posAt(m.d);
     const sz=CS*0.34, fight=!!m.tgt;
-    if(MILIMG.complete && MILIMG.naturalWidth){
+    const bimg=BEASTIMG[m.beast||0];
+    const spr=(bimg&&bimg.complete&&bimg.naturalWidth)?bimg:MILIMG;
+    if(spr.complete && spr.naturalWidth){
       const ms=CS*0.85;
       const bob=Math.abs(Math.sin(m.swing*0.6))*3;
       const tilt=fight?Math.sin(m.swing)*0.16:0;
@@ -1735,7 +1739,7 @@ function render(){
       ctx.fillStyle='#1a2438'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6,4);
       ctx.fillStyle='#e8b45a'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6*Math.max(0,m.hp/m.maxhp),4);
       ctx.scale(mflp,1); ctx.rotate(tilt);
-      ctx.drawImage(MILIMG,-ms/2,-ms*0.68,ms,ms);
+      ctx.drawImage(spr,-ms/2,-ms*0.68,ms,ms);
       ctx.restore();
       return;
     }
