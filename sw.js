@@ -1,5 +1,5 @@
 // Оборона Байкала — минимальный SW. Кэш версионируется: смена имени = полное обновление.
-const CACHE = 'baikal-v1.5.14';
+const CACHE = 'baikal-v1.6.0';
 const PRECACHE = ['./', './index.html', './strings.js', './manifest.json'];
 
 self.addEventListener('install', e => {
