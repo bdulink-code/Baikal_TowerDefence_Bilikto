@@ -211,7 +211,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.6.1</div>
+  <div id="ver">v1.6.2</div>
 </div>
 
 <script type="module">
@@ -226,7 +226,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.6.1';
+const GAME_VER='1.6.2';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -1842,6 +1842,8 @@ function frame(now){
 }
 reset();
 requestAnimationFrame(frame);
+
+
 </script>
 </body>
 </html>
