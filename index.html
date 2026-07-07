@@ -257,7 +257,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.5</div>
+  <div id="ver">v1.8.6</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -281,7 +281,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.8.5';
+const GAME_VER='1.8.6';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -919,6 +919,7 @@ function pauseGame(){ if(state!=='play'||manualPause) return; manualPause=true; 
 function resumeGame(){ if(!manualPause) return; manualPause=false; $('pauseOv').classList.remove('on'); last=performance.now(); if(ac && ac.state!=='running' ){ try{ ac.resume(); }catch(e){} } }
 $('pauseBtn').onclick=()=>{ A(); pauseGame(); };
 $('resumeBtn').onclick=()=>{ resumeGame(); };
+$('pauseOv').addEventListener('click',()=>{ resumeGame(); });
 
 cv.addEventListener('pointerup',e=>{
   if(state!=='play' || (drag&&drag.moved)) return;
