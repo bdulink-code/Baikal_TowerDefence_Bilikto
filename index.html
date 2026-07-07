@@ -80,16 +80,18 @@ button, .tcard { transition:transform .09s ease-out; }
 @keyframes cardPulse { 0%,100%{ border-color:#2c3d61; } 50%{ border-color:#ffd23c; box-shadow:0 0 18px rgba(255,210,60,.6);} }
 
 /* v1.6: плавающее меню башни ПОВЕРХ поля (не в баре — бар больше не мутирует) */
-#twMenu {
+#twMenu, #buildMenu {
   position:absolute; z-index:40; display:none;
   flex-direction:column; gap:6px; align-items:stretch;
   background:rgba(20,30,50,.94); border:2px solid #3d5378; border-radius:14px;
   padding:8px; min-width:150px; box-shadow:0 8px 24px rgba(0,0,0,.5);
   transform:translate(-50%,-50%); pointer-events:auto;
 }
-#twMenu.on { display:flex; }
-#twMenu .ttl { color:#e8f0ff; font-weight:800; font-size:12.5px; text-align:center; padding:1px 2px 3px; white-space:nowrap; }
-#twMenu button { min-height:52px; padding:10px 14px; font-size:14px; font-weight:800; border-radius:12px; }
+#twMenu.on, #buildMenu.on { display:flex; }
+#twMenu .ttl, #buildMenu .ttl { color:#e8f0ff; font-weight:800; font-size:12.5px; text-align:center; padding:1px 2px 3px; white-space:nowrap; }
+#twMenu button, #buildMenu button { min-height:52px; padding:10px 14px; font-size:14px; font-weight:800; border-radius:12px; }
+#buildMenu button:disabled { opacity:.45; }
+#buildMenu #bmX { min-height:0; padding:6px; font-size:12px; font-weight:700; background:#2a3550; color:#9fb2d4; align-self:center; width:40px; height:34px; border-radius:9px; margin-top:2px; }
 /* Продать отодвинута вниз доп. отступом — чтобы не тапнуть случайно вместо Улучшить */
 #twMenu #sellBtn { margin-top:10px; }
 #twMenu #xBtn { min-height:0; padding:6px; font-size:12px; font-weight:700; background:#2a3550; color:#9fb2d4; align-self:center; width:40px; height:34px; border-radius:9px; margin-top:2px; }
@@ -122,7 +124,7 @@ button, .tcard { transition:transform .09s ease-out; }
   #overlay {
     background:
       linear-gradient(180deg, rgba(6,10,20,.45) 0%, rgba(6,10,20,.78) 55%, rgba(6,10,20,.96) 100%),
-      url('./assets/cover_portrait.jpg') center 38%/cover no-repeat #060a14;
+      url('./assets/cover_portrait.jpg') left 38%/cover no-repeat #060a14;
   }
 }
 #overlay h1 { font-size:32px; font-weight:900; line-height:1.15; margin-bottom:10px; }
@@ -202,6 +204,9 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="sellBtn"></button>
     <button id="xBtn">✕</button>
   </div>
+  <div id="buildMenu">
+    <span class="ttl" id="bmTitle"></span>
+  </div>
 </div>
 <div id="dev"></div>
 
@@ -243,7 +248,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.0</div>
+  <div id="ver">v1.8.1</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -267,7 +272,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.6.2';
+const GAME_VER='1.8.1';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -573,6 +578,7 @@ function reset(){
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
   twMenu.classList.remove('on');
+  $('buildMenu').classList.remove('on'); bmCell=null;
   fpsReset();
   militia=[]; milCd=0; milCdShown=-1; giftArrow=false;
   $('milCdT').textContent=''; $('milBtn').classList.remove('cd'); $('milBtn').classList.remove('rdy');
@@ -721,7 +727,7 @@ function renderCards(){
       A();
       if(money<t.cost){ SND.bad(); return; }
       drag={type:k,x:e.clientX,y:e.clientY,moved:false};
-      hideTwMenu();
+      hideTwMenu(); hideBuildMenu();
       e.preventDefault();
     });
     d.addEventListener('pointerup',e=>{
@@ -793,6 +799,7 @@ function updHud(){
   waveBtn.disabled = waveActive;
   updCards();
   if(selTw) showTwMenu(selTw);
+  if(bmCell){ if(canPlace(bmCell[0],bmCell[1])) showBuildMenu(bmCell[0],bmCell[1]); else hideBuildMenu(); }
 }
 let toastT;
 function showToast(t){
@@ -819,6 +826,42 @@ function showTwMenu(tw){
 }
 function hideTwMenu(){ twMenu.classList.remove('on'); selTw=null; }
 $('xBtn').onclick=hideTwMenu;
+
+// ===== v1.8.1: поповер постройки на пустой клетке =====
+const buildMenu=$('buildMenu'); let bmCell=null; const bmBtns={};
+(function(){
+  for(const k in TOWERS){
+    const b=document.createElement('button'); bmBtns[k]=b;
+    b.onclick=()=>{
+      if(!bmCell) return;
+      const [c,r]=bmCell;
+      if(money<TOWERS[k].cost){ SND.bad(); return; }
+      if(!canPlace(c,r)){ hideBuildMenu(); return; }
+      place(k,c,r);
+      window._bp||(window._bp=1,gameEvent('build_popover'));
+      hideBuildMenu();
+    };
+    buildMenu.appendChild(b);
+  }
+  const x=document.createElement('button'); x.id='bmX'; x.textContent='✕'; x.onclick=()=>hideBuildMenu(); buildMenu.appendChild(x);
+})();
+function showBuildMenu(c,r){
+  bmCell=[c,r]; hideTwMenu();
+  $('bmTitle').textContent=STR.buildTitle;
+  for(const k in bmBtns){
+    bmBtns[k].textContent=TOWERS[k].ico+' '+STR.towers[k].nm+' · '+TOWERS[k].cost+'🐟';
+    bmBtns[k].disabled=money<TOWERS[k].cost;
+  }
+  buildMenu.classList.add('on');
+  const cx=offX+(c+0.5)*CS, cy=offY+(r+0.5)*CS;
+  const mw=buildMenu.offsetWidth, mh=buildMenu.offsetHeight, pad=8;
+  let px=cx, py=cy-CS*0.5-mh*0.5-6;
+  if(py-mh/2<pad) py=cy+CS*0.5+mh*0.5+6;
+  px=Math.max(pad+mw/2, Math.min(px, innerWidth-pad-mw/2));
+  py=Math.max(pad+mh/2, Math.min(py, innerHeight-pad-mh/2));
+  buildMenu.style.left=px+'px'; buildMenu.style.top=py+'px';
+}
+function hideBuildMenu(){ buildMenu.classList.remove('on'); bmCell=null; }
 
 function upgradeCost(tw){ return Math.round(TOWERS[tw.type].cost*0.9*tw.lvl); }
 function sellValue(tw){
@@ -877,16 +920,17 @@ cv.addEventListener('pointerup',e=>{
     place(selCard,c,r);
     return;
   }
-  if(tw){ if(selTw===tw) hideTwMenu(); else showTwMenu(tw); }
-  else hideTwMenu();
+  if(tw){ hideBuildMenu(); if(selTw===tw) hideTwMenu(); else showTwMenu(tw); }
+  else if(canPlace(c,r)){ if(bmCell && bmCell[0]===c && bmCell[1]===r) hideBuildMenu(); else showBuildMenu(c,r); }
+  else { hideTwMenu(); hideBuildMenu(); }
 });
 
 // закрытие меню башни тапом в ЛЮБОЕ место вне самого меню и вне игрового поля
 document.addEventListener('pointerdown',e=>{
-  if(!selTw) return;
-  if(e.target.closest('#twMenu')) return;   // клик по кнопкам меню — не закрываем
+  if(!selTw && !bmCell) return;
+  if(e.target.closest('#twMenu') || e.target.closest('#buildMenu')) return; // клик по кнопкам меню — не закрываем
   if(e.target.closest('#c')) return;        // поле обрабатывает клетки само (см. выше)
-  hideTwMenu();
+  hideTwMenu(); hideBuildMenu();
 },true);
 
 // ================= ВОЛНЫ =================
@@ -1012,6 +1056,7 @@ function launch(storm, save){
     wave=save.wave; money=save.money; lives=save.lives; tut=0; tutCell=null;
     save.towers.forEach(t=>{ if(TOWERS[t.type]&&!pathSet.has(t.c+','+t.r)) towers.push({type:t.type,c:t.c,r:t.r,lvl:Math.min(3,t.lvl||1),cd:0,anim:0,ang:-Math.PI/2,born:0}); });
   } else clearSave();
+  gameEvent('map_select',{map:MAPS[mapIdx].id,storm:storm?1:0,resumed:save?1:0});
   if(!save && revengeB){ money+=50; revengeB=false; setTimeout(()=>showToast(STR.revToast),700); }
   musSwitch(storm?'storm':'btl');
   metaClose(); // v1.7: закрыть экран улучшений если открыт
