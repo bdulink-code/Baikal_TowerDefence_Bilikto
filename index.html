@@ -53,7 +53,11 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
 #waveBtn:active:not(:disabled) { transform:scale(.97); }
 #waveBtn.pulse { animation:pulse 1s infinite; }
 @keyframes pulse { 0%,100%{ box-shadow:0 4px 14px rgba(255,210,60,.3);} 50%{ box-shadow:0 0 26px rgba(255,210,60,.85); } }
-#ffBtn, #sndBtn { background:#22314f; color:#e8f0ff; font-size:17px; }
+#ffBtn, #sndBtn, #pauseBtn { background:#22314f; color:#e8f0ff; font-size:17px; }
+#pauseOv { position:fixed; inset:0; z-index:60; display:none; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:rgba(10,16,30,.72); backdrop-filter:blur(2px); }
+#pauseOv.on { display:flex; }
+#pauseOv .pT { font-size:34px; font-weight:800; color:#e8f0ff; letter-spacing:3px; text-shadow:0 2px 12px rgba(0,0,0,.5); }
+#pauseOv #resumeBtn { min-height:56px; padding:14px 34px; font-size:17px; font-weight:800; border-radius:14px; background:#ffd23c; color:#1a2340; }
 #ffBtn.on { background:#4caf78; color:#04140b; }
 #ffBtn { display:flex; align-items:center; justify-content:center; gap:3px; }
 #ffBtn .x2l { font-weight:800; font-size:clamp(13px,4vw,17px); letter-spacing:.2px; }
@@ -227,11 +231,14 @@ button, .tcard { transition:transform .09s ease-out; }
       <button id="milBtn"><span class="milI">🛡</span><span class="frzL">ПОДМОГА</span><span class="cdt" id="milCdT"></span></button>
       <button id="ffBtn"><img src="./assets/ff.png" alt=""><span class="x2l">x2</span></button>
       <button id="sndBtn"><img src="./assets/snd.png" alt="звук"></button>
+      <button id="pauseBtn">⏸</button>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
+
+<div id="pauseOv"><div class="pT"></div><button id="resumeBtn"></button></div>
 
 <div id="overlay">
   <h1><span id="ovT1"></span><br><span id="ovT2" style="color:#ffd23c"></span></h1>
@@ -248,7 +255,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.3</div>
+  <div id="ver">v1.8.4</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -272,7 +279,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.8.3';
+const GAME_VER='1.8.4';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -579,6 +586,7 @@ function reset(){
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
   twMenu.classList.remove('on');
   $('buildMenu').classList.remove('on'); bmCell=null;
+  manualPause=false; $('pauseOv').classList.remove('on');
   fpsReset();
   militia=[]; milCd=0; milCdShown=-1; giftArrow=false;
   $('milCdT').textContent=''; $('milBtn').classList.remove('cd'); $('milBtn').classList.remove('rdy');
@@ -904,6 +912,11 @@ $('nerpaBtn').onclick=()=>{
   window._nu||(window._nu=1,gameEvent('nerpa_used'));
 };
 sndBtn.onclick=()=>{ muted=!muted; gameEvent(muted?'sound_off':'sound_on'); sndBtn.classList.toggle('mutedBtn',muted); if(MUSF.gain) MUSF.gain.gain.value=muted?0:0.55; if(!muted){ A(); SND.coin(); } };
+$('pauseOv').querySelector('.pT').textContent=STR.pauseT; $('resumeBtn').textContent=STR.resume;
+function pauseGame(){ if(state!=='play'||manualPause) return; manualPause=true; $('pauseOv').classList.add('on'); try{ if(ac) ac.suspend(); }catch(e){} gameEvent('pause_click'); }
+function resumeGame(){ if(!manualPause) return; manualPause=false; $('pauseOv').classList.remove('on'); last=performance.now(); if(ac && ac.state!=='running' ){ try{ ac.resume(); }catch(e){} } }
+$('pauseBtn').onclick=()=>{ A(); pauseGame(); };
+$('resumeBtn').onclick=()=>{ resumeGame(); };
 
 cv.addEventListener('pointerup',e=>{
   if(state!=='play' || (drag&&drag.moved)) return;
@@ -2052,7 +2065,7 @@ function render(){
 
 // ================= ЦИКЛ =================
 const STEP=1000/60;
-let acc=0, last=performance.now(), paused=false, frames=0, fpsAt=last;
+let acc=0, last=performance.now(), paused=false, manualPause=false, frames=0, fpsAt=last;
 addEventListener('blur',()=>paused=true);
 addEventListener('focus',()=>{ paused=false; last=performance.now(); });
 document.addEventListener('visibilitychange',()=>{
@@ -2064,7 +2077,7 @@ if(dev) $('dev').style.display='block';
 
 function frame(now){
   requestAnimationFrame(frame);
-  if(paused) return;
+  if(paused||manualPause) return;
   fpsTick(now-last);
   acc+=now-last; last=now;
   if(acc>250) acc=250;
