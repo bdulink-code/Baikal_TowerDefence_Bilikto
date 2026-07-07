@@ -248,7 +248,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.1</div>
+  <div id="ver">v1.8.2</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -272,7 +272,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.8.1';
+const GAME_VER='1.8.2';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -909,9 +909,10 @@ cv.addEventListener('pointerup',e=>{
   if(state!=='play' || (drag&&drag.moved)) return;
   A();
   const cell=cellAt(e.clientX,e.clientY);
-  if(!cell){ hideTwMenu(); return; }
+  if(!cell){ hideTwMenu(); hideBuildMenu(); return; }
   const [c,r]=cell;
   const tw=towers.find(t=>t.c===c&&t.r===r);
+  if(bmCell && !selCard){ hideBuildMenu(); return; } // меню стройки открыто: любой тап = выход
   if(selCard){
     if(!canPlace(c,r)){ SND.bad(); badCell={c,r,t:0.3};
       const now=performance.now();
@@ -920,9 +921,9 @@ cv.addEventListener('pointerup',e=>{
     place(selCard,c,r);
     return;
   }
-  if(tw){ hideBuildMenu(); if(selTw===tw) hideTwMenu(); else showTwMenu(tw); }
-  else if(canPlace(c,r)){ if(bmCell && bmCell[0]===c && bmCell[1]===r) hideBuildMenu(); else showBuildMenu(c,r); }
-  else { hideTwMenu(); hideBuildMenu(); }
+  if(tw){ if(selTw===tw) hideTwMenu(); else showTwMenu(tw); }
+  else if(canPlace(c,r)){ showBuildMenu(c,r); }
+  else { hideTwMenu(); }
 });
 
 // закрытие меню башни тапом в ЛЮБОЕ место вне самого меню и вне игрового поля
