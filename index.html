@@ -134,6 +134,28 @@ button, .tcard { transition:transform .09s ease-out; }
 #ovStars.staged span { transform:scale(0); }
 #ovStars.staged span.pop { animation:starPop .5s cubic-bezier(.2,1.6,.4,1) forwards; }
 @keyframes starPop { 0%{ transform:scale(0) rotate(-40deg); } 70%{ transform:scale(1.35) rotate(8deg); } 100%{ transform:scale(1) rotate(0); } }
+#ovPearls { color:#7fd8ff; font-size:19px; font-weight:900; margin:-6px 0 16px; text-shadow:0 2px 10px rgba(0,0,0,.7); }
+#overlay #metaBtnOv { background:#2a6fb0; color:#eaf6ff; font-size:16px; padding:13px 34px; box-shadow:0 6px 20px rgba(42,111,176,.45); }
+/* Экран дерева апгрейдов */
+#metaScreen {
+  position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
+  background:linear-gradient(180deg,#0a1526 0%,#0e1b30 100%); padding:20px 16px; overflow-y:auto;
+}
+#metaScreen.hidden { display:none; }
+#metaScreen h1 { font-size:26px; font-weight:900; color:#eaf6ff; text-align:center; margin:8px 0 6px; text-shadow:0 2px 12px rgba(0,0,0,.8); }
+#metaSubP { color:#9fb2d6; font-size:14px; line-height:1.5; max-width:340px; text-align:center; margin-bottom:12px; }
+#metaPearlsN { color:#7fd8ff; font-size:20px; font-weight:900; margin-bottom:16px; }
+#metaList { display:flex; flex-direction:column; gap:10px; width:100%; max-width:420px; }
+.mNode { display:flex; align-items:center; gap:12px; background:#152740; border:2px solid #243a5c; border-radius:14px; padding:12px 14px; }
+.mNode .mIco { font-size:30px; width:44px; text-align:center; flex-shrink:0; }
+.mNode .mInfo { flex:1; min-width:0; }
+.mNode .mNm { font-size:15px; font-weight:800; color:#eaf6ff; }
+.mNode .mDs { font-size:12px; color:#8ea3c4; line-height:1.3; margin-top:1px; }
+.mNode .mLv { font-size:12px; color:#ffd23c; font-weight:800; margin-top:3px; letter-spacing:2px; }
+.mNode .mBuy { flex-shrink:0; min-height:52px; min-width:92px; background:#ffd23c; color:#1a1400; font-size:14px; font-weight:800; border-radius:12px; padding:8px 12px; line-height:1.15; }
+.mNode.mMax .mBuy { background:#2a3a52; color:#7f93b4; }
+.mNode.mOff .mBuy { opacity:.4; }
+#metaBackBtn { margin:20px 0 10px; background:#22314f; color:#e8f0ff; font-size:16px; font-weight:800; padding:13px 40px; border-radius:12px; box-shadow:none; }
 .step { opacity:0; transform:translateY(14px); }
 .step.in { opacity:1; transform:none; transition:opacity .45s ease, transform .45s cubic-bezier(.2,1.4,.4,1); }
 #overlay.defeat { filter:saturate(.68) brightness(.9); }
@@ -206,14 +228,25 @@ button, .tcard { transition:transform .09s ease-out; }
   <p id="ovP"></p>
   <div id="ovStars"></div>
   <div id="ovStats"></div>
+  <div id="ovPearls" style="display:none"></div>
   <div id="ovBtns">
     <button id="contBtn" style="display:none"></button>
     <button id="startBtn"></button>
+    <button id="metaBtnOv" style="display:none"></button>
     <button id="stormBtn"></button>
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.6.3</div>
+  <div id="ver">v1.7.0</div>
+</div>
+
+<!-- v1.7 экран метапрогрессии -->
+<div id="metaScreen" class="hidden">
+  <h1 id="metaH1"></h1>
+  <p id="metaSubP"></p>
+  <div id="metaPearlsN"></div>
+  <div id="metaList"></div>
+  <button id="metaBackBtn"></button>
 </div>
 
 <script type="module">
@@ -505,6 +538,8 @@ function pickTutCell(){
 
 function reset(){
   money=stormMode?130:160; lives=stormMode?7:15; wave=0; waveActive=false;
+  money += upgEff('sadok'); lives += upgEff('led'); // v1.7 метапрогрессия: стартовые бонусы
+  pearlsAwarded=false;
   nerpaCd=0; nerpaCdShown=-1; $('nerpaCdT').textContent=''; $('nerpaBtn').classList.remove('cd'); $('nerpaBtn').classList.remove('rdy');
   stats={kills:0,gold:0,t0:performance.now()};
   towers=[]; enemies=[]; projs=[]; parts=[]; corpses=[]; dmgTxt=[]; spawnQ=[]; fxs=[]; selCard=null; selTw=null; gs=1; gt=0; drag=null;
@@ -521,6 +556,48 @@ function localStorage_ok(){ try{ localStorage.setItem('_t','1'); localStorage.re
 if(localStorage_ok() && localStorage.getItem('bk_storm')==='1'){ stormUnlocked=true; }
 function bestGet(storm){ if(!localStorage_ok()) return 0; return parseInt(localStorage.getItem(storm?'bk_best_storm':'bk_best')||'0',10)||0; }
 function bestSet(storm,w){ if(localStorage_ok()) try{ localStorage.setItem(storm?'bk_best_storm':'bk_best',String(w)); }catch(e){} }
+
+// ===== v1.7 МЕТАПРОГРЕССИЯ (Жемчуг Байкала) =====
+// Определение дерева: 6 узлов × 3 уровня. Эффекты — стартовые множители/бонусы.
+const META = {
+  sadok:  { icon:'🐟', cost:[15,35,70],   eff:[30,60,100] },   // +стартовый омуль
+  led:    { icon:'❄️', cost:[20,45,90],   eff:[1,2,3] },        // +стартовые жизни
+  glaz:   { icon:'🏹', cost:[25,55,110],  eff:[0.05,0.10,0.18] }, // множитель урона
+  zver:   { icon:'🐻', cost:[20,45,90],   eff:[0.10,0.20,0.30] }, // −кулдаун подмоги
+  serdce: { icon:'🦭', cost:[25,55,110],  eff:[0.08,0.15,0.25] }, // −кулдаун нерпы
+  ulov:   { icon:'💰', cost:[30,65,130],  eff:[0.04,0.08,0.14] }, // +награда за волну
+};
+const META_ORDER = ['sadok','led','glaz','zver','serdce','ulov'];
+function pearlsGet(){ if(!localStorage_ok()) return 0; return parseInt(localStorage.getItem('bk_pearls')||'0',10)||0; }
+function pearlsSet(n){ if(localStorage_ok()) try{ localStorage.setItem('bk_pearls',String(Math.max(0,Math.floor(n)))); }catch(e){} }
+function upgGet(){
+  if(!localStorage_ok()) return {sadok:0,led:0,glaz:0,zver:0,serdce:0,ulov:0};
+  try{ const o=JSON.parse(localStorage.getItem('bk_upg')||'null'); if(o&&typeof o==='object'){
+    return {sadok:o.sadok|0,led:o.led|0,glaz:o.glaz|0,zver:o.zver|0,serdce:o.serdce|0,ulov:o.ulov|0}; }
+  }catch(e){}
+  return {sadok:0,led:0,glaz:0,zver:0,serdce:0,ulov:0};
+}
+function upgSet(o){ if(localStorage_ok()) try{ localStorage.setItem('bk_upg',JSON.stringify(o)); }catch(e){} }
+// Текущий уровень узла (0..3) и его накопленный эффект
+function upgLvl(node){ return Math.min(3, upgGet()[node]|0); }
+function upgEff(node){ const l=upgLvl(node); return l>0 ? META[node].eff[l-1] : (node==='sadok'||node==='led'?0:0); }
+// Начисление жемчуга за забег (в endGame), с анти-двойным флагом
+let pearlsAwarded=false;
+function awardPearls(win, reached){
+  if(pearlsAwarded) return {amount:0,first:false};
+  pearlsAwarded=true;
+  let amt = reached*2 + (win?25:0);
+  if(stormMode) amt = Math.round(amt*1.5);
+  // ×2 за первый забег дня
+  let first=false;
+  if(localStorage_ok()){
+    try{ const today=new Date().toISOString().slice(0,10);
+      if(localStorage.getItem('bk_pday')!==today){ localStorage.setItem('bk_pday',today); amt*=2; first=true; }
+    }catch(e){}
+  }
+  pearlsSet(pearlsGet()+amt);
+  return {amount:amt, first:first};
+}
 function menuRecordLine(){
   const n=bestGet(false), s=bestGet(true);
   let out=[];
@@ -555,7 +632,11 @@ const moneyEl=$('money'), livesEl=$('lives'), waveEl=$('wave'),
 $('lblMoney').textContent=STR.hudMoney; $('lblLives').textContent=STR.hudLives; $('lblWave').textContent=STR.hudWave;
 $('ovT1').textContent=STR.title1; $('ovT2').textContent=STR.title2;
 $('ovP').textContent=STR.intro; $('startBtn').textContent=STR.start;
+$('metaBtnOv').textContent=STR.metaToImprove;
 $('ovRecord').textContent=menuRecordLine();
+// v1.7: на стартовом меню кнопку «Улучшения» показываем, если уже есть жемчуг или начато дерево
+(function(){ const u=upgGet(); const any=pearlsGet()>0 || META_ORDER.some(n=>u[n]>0);
+  if(any){ $('metaBtnOv').style.display='inline-block'; } })();
 updContBtn();
 if(stormUnlocked){ $('stormBtn').textContent=STR.storm; $('stormBtn').style.display='block'; }
 
@@ -729,7 +810,7 @@ $('nerpaBtn').onclick=()=>{
   A();
   if(MUSF.bark){ playBuf(MUSF.bark,1); playBuf(MUSF.crack,0.9,0.32); } else SND.nerpa();
   $('nerpaBtn').classList.remove('rdy');
-  nerpaCd=40; nerpaCdShown=-1;
+  nerpaCd=40*(1-upgEff('serdce')); nerpaCdShown=-1;
   enemies.forEach(e=>{ e.frz=2.5; });
   const [nx,ny]=pathPts[pathPts.length-1];
   ring(nx,ny,'#7fd8ff',CS*2.2); ring(nx,ny,'#aef7e8',CS*3.4);
@@ -752,7 +833,7 @@ cv.addEventListener('pointerup',e=>{
     place(selCard,c,r);
     return;
   }
-  if(tw) showTwMenu(tw);
+  if(tw){ if(selTw===tw) hideTwMenu(); else showTwMenu(tw); }
   else hideTwMenu();
 });
 
@@ -838,6 +919,18 @@ function endGame(win){
     stormUnlocked=true;
   }
   else { $('ovT1').textContent=STR.loseT1; $('ovT2').textContent=STR.loseT2; $('ovP').textContent=STR.loseP.replace('{w}',wave); }
+  // v1.7: начисляем жемчуг за забег и показываем строку заработка + кнопку «Улучшиться»
+  if(localStorage_ok()){
+    const rp=awardPearls(win, reached);
+    if(rp.amount>0){
+      gameEvent('pearls_earned',{amount:rp.amount,wave:reached});
+      const line=(rp.first?STR.metaEarnedFirst:STR.metaEarned).replace('{n}',rp.amount);
+      const pe=$('ovPearls'); if(pe){ pe.textContent=line; pe.classList.add('step'); pe.classList.remove('in'); pe.style.display='block';
+        setTimeout(()=>{ if(state!=='play') pe.classList.add('in'); }, base+(win?2300:920)); }
+      const mb=$('metaBtnOv'); if(mb){ mb.style.display='inline-block'; mb.classList.add('step'); mb.classList.remove('in');
+        setTimeout(()=>{ if(state!=='play') mb.classList.add('in'); }, base+(win?2700:1250)); }
+    }
+  }
   // звёзды (только при победе)
   const maxL=stormMode?7:15;
   const nStars=win?(lives>=maxL?3:lives>=maxL*0.6?2:1):0;
@@ -875,9 +968,11 @@ function launch(storm, save){
   } else clearSave();
   if(!save && revengeB){ money+=50; revengeB=false; setTimeout(()=>showToast(STR.revToast),700); }
   musSwitch(storm?'storm':'btl');
+  metaClose(); // v1.7: закрыть экран улучшений если открыт
+  $('ovPearls').style.display='none'; $('metaBtnOv').style.display='none';
   overlay.classList.add('hidden');
   overlay.classList.remove('defeat');
-  ['ovT1','ovT2','ovStars','ovStats','ovP','ovRecord','ovBtns'].forEach(id=>{ const el=$(id); el.classList.remove('step'); el.classList.remove('in'); });
+  ['ovT1','ovT2','ovStars','ovStats','ovP','ovRecord','ovBtns','ovPearls','metaBtnOv'].forEach(id=>{ const el=$(id); el.classList.remove('step'); el.classList.remove('in'); });
   $('ovStars').classList.remove('staged');
   $('startBtn').classList.remove('btnPulse');
   $('top').classList.remove('hidden'); bar.classList.remove('hidden');
@@ -890,7 +985,7 @@ $('milBtn').onclick=()=>{
   if(militia.length>=6){ showToast(STR.milFull); return; }
   A(); SND.horn();
   $('milBtn').classList.remove('rdy');
-  milCd=45; milCdShown=-1;
+  milCd=45*(1-upgEff('zver')); milCdShown=-1;
   const hp=Math.round(110*(1+0.12*wave));
   for(let i=0;i<3;i++) militia.push({d:Math.max(CS,pathLen-10-i*CS*0.6),hp:hp,maxhp:hp,sp:52,dps:28,tgt:null,swing:Math.random()*7,beast:i%3});
   const [mx,my]=pathPts[pathPts.length-1];
@@ -906,6 +1001,51 @@ $('shareBtn').onclick=async ()=>{
   if(navigator.share){ try{ await navigator.share({title:'Оборона Байкала', text:txt, url:url}); }catch(e){} }
   else { try{ await navigator.clipboard.writeText(txt+' '+url); showToast(STR.shared); }catch(e){} }
 };
+// ===== v1.7 UI метапрогрессии =====
+function metaRender(){
+  const upg=upgGet(), pearls=pearlsGet();
+  $('metaH1').textContent=STR.metaTitle;
+  $('metaSubP').textContent=STR.metaSub;
+  $('metaPearlsN').textContent=STR.metaPearls.replace('{n}',pearls);
+  $('metaBackBtn').textContent=STR.metaBack;
+  const list=$('metaList'); list.innerHTML='';
+  META_ORDER.forEach(node=>{
+    const lvl=Math.min(3,upg[node]|0), maxed=lvl>=3;
+    const cost=maxed?0:META[node].cost[lvl];
+    const canBuy=!maxed && pearls>=cost;
+    const t=STR.metaNodes[node];
+    const dots='●'.repeat(lvl)+'○'.repeat(3-lvl);
+    const row=document.createElement('div');
+    row.className='mNode'+(maxed?' mMax':(canBuy?'':' mOff'));
+    row.innerHTML='<div class="mIco">'+META[node].icon+'</div>'+
+      '<div class="mInfo"><div class="mNm">'+t.nm+'</div><div class="mDs">'+t.ds+'</div>'+
+      '<div class="mLv">'+dots+'</div></div>'+
+      '<button class="mBuy" data-node="'+node+'">'+(maxed?STR.metaMax:(STR.metaInvest+'<br>'+META[node].cost[lvl]+' 🦪'))+'</button>';
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.mBuy').forEach(b=>{
+    b.onclick=()=>{
+      const node=b.getAttribute('data-node');
+      const u=upgGet(), lvl=Math.min(3,u[node]|0);
+      if(lvl>=3) return;
+      const cost=META[node].cost[lvl], p=pearlsGet();
+      if(p<cost){ SND.bad(); return; }
+      pearlsSet(p-cost); u[node]=lvl+1; upgSet(u);
+      SND.place();
+      gameEvent('meta_buy',{node:node,level:lvl+1});
+      metaRender();
+    };
+  });
+}
+function metaOpen(){
+  gameEvent('meta_open',{});
+  metaRender();
+  $('metaScreen').classList.remove('hidden');
+}
+function metaClose(){ $('metaScreen').classList.add('hidden'); }
+$('metaBackBtn').onclick=metaClose;
+$('metaBtnOv').onclick=metaOpen;
+
 $('startBtn').onclick=()=>{
   A();
   gameEvent(state==='menu'?'game_start':(lastWin?'replay':'revenge_click'),
@@ -1026,7 +1166,7 @@ function update(dtMs){
     }
   } else if(waveActive && enemies.length===0){
     waveActive=false;
-    const bonus=Math.round((40+wave*8)*(stormMode?0.75:1));
+    const bonus=Math.round((40+wave*8)*(stormMode?0.75:1)*(1+upgEff('ulov')));
     money+=bonus; stats.gold+=bonus; SND.coin();
     if(wave>=MAXWAVE){ endGame(true); return; }
     saveGame();
@@ -1104,7 +1244,7 @@ function update(dtMs){
     if(best){
       const [ex,ey]=posAt(best.d);
       tw.ang=Math.atan2(ey-ty,ex-tx);
-      const dmg=b.dmg*Math.pow(1.65,tw.lvl-1);
+      const dmg=b.dmg*Math.pow(1.65,tw.lvl-1)*(1+upgEff('glaz'));
       projs.push({type:tw.type,x:tx,y:ty-CS*0.2,tgt:best,dmg,slow:!!b.slow,splash:!!b.splash,sp:CS*(tw.type==='fire'?7:12)});
       tw.cd=b.cd*Math.pow(0.92,tw.lvl-1);
       tw.anim=0.28;
@@ -1170,7 +1310,7 @@ function hit(p, ex, ey){
       killStreak=(now-lastKillT<1.5)?killStreak+1:0; lastKillT=now;
       SND.die(Math.pow(2,Math.min(killStreak,8)/12));
       stats.kills++;
-      const rw=Math.max(1,Math.round(ENEMIES[e.type].rw*Math.pow(0.96,wave-1)*(stormMode?0.75:1)))*(e.mega?3:1);
+      const rw=Math.max(1,Math.round(ENEMIES[e.type].rw*Math.pow(0.96,wave-1)*(stormMode?0.75:1)*(1+upgEff('ulov'))))*(e.mega?3:1);
       dmgNum(x,y-CS*0.2,'+'+rw+'🐟','#ffd23c');
       if(e.type==='boss'){ SND.thud(); shakeA=e.mega?7:4; }
       stats.gold+=rw;
