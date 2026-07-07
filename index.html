@@ -248,7 +248,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.2</div>
+  <div id="ver">v1.8.3</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -272,7 +272,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.8.2';
+const GAME_VER='1.8.3';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -669,7 +669,7 @@ $('ovT1').textContent=STR.title1; $('ovT2').textContent=STR.title2;
 $('ovP').textContent=STR.intro; $('startBtn').textContent=STR.start;
 $('metaBtnOv').textContent=STR.metaToImprove;
 // v1.8: выбор карты. Сохраняем последнюю выбранную.
-(function(){ if(localStorage_ok()){ const s=parseInt(localStorage.getItem('bk_map'),10); if(s>=0 && s<MAPS.length){ loadMap(s); } } })();
+(function(){ if(localStorage_ok()){ const s=parseInt(localStorage.getItem('bk_map'),10); if(s>=0 && s<MAPS.length){ loadMap(s); resize(); } } })();
 function renderMapPick(){
   const box=$('mapPick'); box.innerHTML='';
   const ttl=document.createElement('div'); ttl.className='mpTitle'; ttl.textContent=STR.mapTitle; box.appendChild(ttl);
