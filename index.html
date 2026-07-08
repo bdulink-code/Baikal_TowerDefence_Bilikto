@@ -143,8 +143,8 @@ button, .tcard { transition:transform .09s ease-out; }
 #ovStars.staged span { transform:scale(0); }
 #ovStars.staged span.pop { animation:starPop .5s cubic-bezier(.2,1.6,.4,1) forwards; }
 @keyframes starPop { 0%{ transform:scale(0) rotate(-40deg); } 70%{ transform:scale(1.35) rotate(8deg); } 100%{ transform:scale(1) rotate(0); } }
-#ovPearls { color:#7fd8ff; font-size:19px; font-weight:900; margin:-6px 0 16px; text-shadow:0 2px 10px rgba(0,0,0,.7); }
-#overlay #metaBtnOv { background:#2a6fb0; color:#eaf6ff; font-size:16px; padding:13px 34px; box-shadow:0 6px 20px rgba(42,111,176,.45); }
+#ovPearls { color:#8fe0ff; font-size:22px; font-weight:900; margin:-4px 0 14px; text-shadow:0 2px 12px rgba(0,0,0,.75); }
+#overlay #metaBtnOv { background:linear-gradient(180deg,#ffd23c,#f0a71e); color:#1a1400; font-size:17px; font-weight:900; padding:14px 36px; box-shadow:0 6px 22px rgba(255,180,40,.5); }
 /* Экран дерева апгрейдов */
 #metaScreen {
   position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center;
@@ -257,7 +257,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.7</div>
+  <div id="ver">v1.8.8</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -281,7 +281,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.8.7';
+const GAME_VER='1.8.8';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -972,6 +972,7 @@ waveBtn.onclick=()=>{
   if(waveActive||state!=='play') return;
   A(); SND.wave();
   if(tut===2) tutNext(0);
+  waveBtn.classList.remove('pulse');
   if(localStorage_ok() && !localStorage.getItem('bk_tut2')){ try{ localStorage.setItem('bk_tut2','1'); }catch(e){} }
   wave++; waveActive=true;
   gameEvent('wave_reached',{wave:wave,storm:stormMode?1:0});
@@ -1033,8 +1034,8 @@ function endGame(win){
       const line=(rp.first?STR.metaEarnedFirst:STR.metaEarned).replace('{n}',rp.amount);
       const pe=$('ovPearls'); if(pe){ pe.textContent=line; pe.classList.add('step'); pe.classList.remove('in'); pe.style.display='block';
         setTimeout(()=>{ if(state!=='play') pe.classList.add('in'); }, base+(win?2300:920)); }
-      const mb=$('metaBtnOv'); if(mb){ mb.style.display='inline-block'; mb.classList.add('step'); mb.classList.remove('in');
-        setTimeout(()=>{ if(state!=='play') mb.classList.add('in'); }, base+(win?2700:1250)); }
+      const mb=$('metaBtnOv'); if(mb){ mb.style.display='inline-block'; mb.classList.add('step'); mb.classList.remove('in'); mb.classList.remove('btnPulse');
+        setTimeout(()=>{ if(state!=='play'){ mb.classList.add('in'); if(!win) mb.classList.add('btnPulse'); } }, base+(win?2700:1250)); }
     }
   }
   // звёзды (только при победе)
@@ -1067,6 +1068,7 @@ function endGame(win){
 }
 function launch(storm, save){
   stormMode=storm;
+  window._prepH=0;
   reset(); state='play';
   if(save){
     if(typeof save.map==='number'){ loadMap(save.map); resize(); }
@@ -1082,6 +1084,7 @@ function launch(storm, save){
   overlay.classList.add('hidden');
   overlay.classList.remove('defeat');
   ['ovT1','ovT2','ovStars','ovStats','ovP','ovRecord','ovBtns','ovPearls','metaBtnOv'].forEach(id=>{ const el=$(id); el.classList.remove('step'); el.classList.remove('in'); });
+  $('metaBtnOv').classList.remove('btnPulse');
   $('ovStars').classList.remove('staged');
   $('startBtn').classList.remove('btnPulse');
   $('top').classList.remove('hidden'); bar.classList.remove('hidden');
@@ -1291,6 +1294,11 @@ function update(dtMs){
       setTimeout(()=>{ if(state==='play'&&!waveActive) showToast(tip); },1800);
     }
     if(wave===1){ setTimeout(()=>{ if(state==='play') showToast(STR.tutUp); },1400); }
+    // v1.8.8: фаза подготовки — направляем внимание, что между волнами можно спокойно расставлять
+    if(wave>=2 && wave<MAXWAVE){
+      waveBtn.classList.add('pulse');
+      if(!window._prepH){ window._prepH=1; setTimeout(()=>{ if(state==='play'&&!waveActive) showToast(STR.prepHint); },2600); }
+    }
     updHud();
   }
 

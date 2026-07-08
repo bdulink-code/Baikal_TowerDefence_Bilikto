@@ -63,6 +63,7 @@ export const STR = {
   metaMax: "Макс.",
   metaLvl: "ур. {n}/3",
   metaBack: "Назад",
+  prepHint: "⏸ Есть время — расставь и прокачай башни, потом жми «Волна»",
   metaEarned: "🦪 +{n} жемчуга",
   metaEarnedFirst: "🦪 +{n} жемчуга  (×2 за первый поход дня!)",
   metaToImprove: "🦪 Улучшиться",
