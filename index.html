@@ -182,6 +182,29 @@ button, .tcard { transition:transform .09s ease-out; }
 #overlay #contBtn { background:#4caf78; color:#04140b; font-size:16px; padding:13px 34px; box-shadow:0 6px 20px rgba(76,175,120,.4); }
 #overlay #shareBtn { display:none; background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; }
+#ovLegal { margin-top:6px; font-size:11px; color:#5f7295; text-align:center; line-height:1.5; }
+#ovLegal a { color:#8fa8d4; text-decoration:underline; }
+#privacyScreen {
+  position:fixed; inset:0; z-index:70; display:flex; flex-direction:column; align-items:center;
+  background:linear-gradient(180deg,#0a1526 0%,#0e1b30 100%); padding:20px 16px; overflow-y:auto;
+}
+#privacyScreen.hidden { display:none; }
+#privacyScreen h1 { font-size:20px; font-weight:900; color:#eaf6ff; text-align:center; margin:6px 0 12px; }
+#privacyText { max-width:560px; color:#c3d2ea; font-size:13px; line-height:1.6; }
+#privacyText p { margin:0 0 12px; }
+#privacyOwner { max-width:560px; color:#8fa8d4; font-size:12px; margin:8px 0 18px; text-align:center; }
+#privacyBackBtn { background:#2a3550; color:#eaf6ff; font-size:15px; padding:12px 30px; border:none; border-radius:16px; cursor:pointer; }
+#cookieBar {
+  position:fixed; left:0; right:0; bottom:0; z-index:80;
+  background:rgba(12,20,36,.97); border-top:1px solid #223050;
+  padding:12px 14px calc(12px + env(safe-area-inset-bottom,0));
+  display:flex; flex-direction:column; gap:8px; box-shadow:0 -4px 20px rgba(0,0,0,.5);
+}
+#cookieBar.hidden { display:none; }
+#cookieMsg { color:#c3d2ea; font-size:12px; line-height:1.5; }
+#cookieBtns { display:flex; align-items:center; justify-content:flex-end; gap:14px; }
+#cookieMoreBtn { color:#8fa8d4; font-size:12px; text-decoration:underline; }
+#cookieOkBtn { background:#ffd23c; color:#1a1400; font-weight:800; font-size:14px; padding:9px 24px; border:none; border-radius:14px; cursor:pointer; }
 #overlay #stormBtn { display:none; background:#7c4dff; color:#fff; font-size:15px; padding:12px 34px; box-shadow:0 6px 20px rgba(124,77,255,.4); }
 #nerpaBtn { position:relative; border:2px solid #4a7fa8; background:#12283f; }
 #milBtn { position:relative; border:2px solid #a8814a; background:#3f2f12; }
@@ -258,6 +281,24 @@ button, .tcard { transition:transform .09s ease-out; }
   </div>
   <div id="ovRecord"></div>
   <div id="ver">v1.8.9</div>
+  <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
+</div>
+
+<!-- v1.9 экран политики конфиденциальности -->
+<div id="privacyScreen" class="hidden">
+  <h1 id="privacyH1"></h1>
+  <div id="privacyText"></div>
+  <div id="privacyOwner"></div>
+  <button id="privacyBackBtn"></button>
+</div>
+
+<!-- v1.9 cookie-баннер -->
+<div id="cookieBar" class="hidden">
+  <span id="cookieMsg"></span>
+  <div id="cookieBtns">
+    <a id="cookieMoreBtn" href="#"></a>
+    <button id="cookieOkBtn"></button>
+  </div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -279,7 +320,7 @@ if(YM_ID){
   m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],
   k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-  ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
+  ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:false});
 }
 const GAME_VER='1.8.9';
 let OWNER=false;
@@ -694,6 +735,29 @@ $('lblMoney').textContent=STR.hudMoney; $('lblLives').textContent=STR.hudLives; 
 $('ovT1').textContent=STR.title1; $('ovT2').textContent=STR.title2;
 $('ovP').textContent=STR.intro; $('startBtn').textContent=STR.start;
 $('metaBtnOv').textContent=STR.metaToImprove;
+// v1.9: политика конфиденциальности + cookie-согласие (152-ФЗ, Яндекс.Метрика)
+(function(){
+  $('ownerLine').textContent=STR.ownerLine;
+  $('privacyOpen').textContent=STR.privacyLink;
+  $('privacyH1').textContent=STR.privacyTitle;
+  $('privacyBackBtn').textContent=STR.privacyBack;
+  $('privacyOwner').textContent=STR.ownerLine;
+  const pt=$('privacyText'); pt.innerHTML='';
+  STR.privacyBody.forEach(t=>{ const p=document.createElement('p'); p.textContent=t; pt.appendChild(p); });
+  $('cookieMsg').textContent=STR.cookieText;
+  $('cookieOkBtn').textContent=STR.cookieAccept;
+  $('cookieMoreBtn').textContent=STR.cookieMore;
+  function openPrivacy(e){ if(e)e.preventDefault(); $('privacyScreen').classList.remove('hidden'); }
+  function closePrivacy(){ $('privacyScreen').classList.add('hidden'); }
+  $('privacyOpen').onclick=openPrivacy;
+  $('cookieMoreBtn').onclick=openPrivacy;
+  $('privacyBackBtn').onclick=closePrivacy;
+  // баннер показываем один раз, до согласия
+  let accepted=false;
+  try{ accepted = localStorage.getItem('bk_cookie_ok')==='1'; }catch(e){ accepted=true; } // нет localStorage — не мешаем
+  if(!accepted && !OWNER){ $('cookieBar').classList.remove('hidden'); }
+  $('cookieOkBtn').onclick=()=>{ try{ localStorage.setItem('bk_cookie_ok','1'); }catch(e){} $('cookieBar').classList.add('hidden'); };
+})();
 // v1.8: выбор карты. Сохраняем последнюю выбранную.
 (function(){ if(localStorage_ok()){ const s=parseInt(localStorage.getItem('bk_map'),10); if(s>=0 && s<MAPS.length){ loadMap(s); resize(); } } })();
 function renderMapPick(){
