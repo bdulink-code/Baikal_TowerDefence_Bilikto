@@ -315,20 +315,28 @@ import { STR } from "./strings.js";
 
 // ===== АНАЛИТИКА (Яндекс.Метрика) =====
 const YM_ID = 110360565; // <- сюда номер счётчика Метрики
-if(YM_ID){
-  (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-  m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],
-  k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-  (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-  ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:false});
-}
 const GAME_VER='1.8.9';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
   OWNER = localStorage.getItem('bk_owner')==='1';
 }catch(e){}
-function gameEvent(name,params){ if(OWNER) return; try{ if(YM_ID && window.ym){ params=params||{}; params.v=GAME_VER; ym(YM_ID,'reachGoal',name,params); } }catch(e){} }
+// Opt-in по 152-ФЗ/23-ФЗ: код Метрики НЕ грузится до согласия пользователя.
+// Никаких запросов к mc.yandex.ru и cookie аналитики до клика «Принять».
+let _ymReady=false;
+function initMetrika(){
+  if(_ymReady || !YM_ID) return;
+  _ymReady=true;
+  (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+  m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],
+  k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+  (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+  ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:false});
+}
+function cookieAccepted(){ try{ return localStorage.getItem('bk_cookie_ok')==='1'; }catch(e){ return false; } }
+// повторный визит с уже данным согласием — грузим сразу
+if(cookieAccepted()) initMetrika();
+function gameEvent(name,params){ if(OWNER || !_ymReady) return; try{ if(YM_ID && window.ym){ params=params||{}; params.v=GAME_VER; ym(YM_ID,'reachGoal',name,params); } }catch(e){} }
 let _errN=0;
 window.addEventListener('error',e=>{ if(_errN++<3) gameEvent('js_error',{m:String(e.message||'').slice(0,90),l:e.lineno||0}); });
 window.addEventListener('unhandledrejection',e=>{ if(_errN++<3) gameEvent('js_error',{m:('promise: '+String(e.reason||'')).slice(0,90)}); });
@@ -753,10 +761,8 @@ $('metaBtnOv').textContent=STR.metaToImprove;
   $('cookieMoreBtn').onclick=openPrivacy;
   $('privacyBackBtn').onclick=closePrivacy;
   // баннер показываем один раз, до согласия
-  let accepted=false;
-  try{ accepted = localStorage.getItem('bk_cookie_ok')==='1'; }catch(e){ accepted=true; } // нет localStorage — не мешаем
-  if(!accepted && !OWNER){ $('cookieBar').classList.remove('hidden'); }
-  $('cookieOkBtn').onclick=()=>{ try{ localStorage.setItem('bk_cookie_ok','1'); }catch(e){} $('cookieBar').classList.add('hidden'); };
+  if(!cookieAccepted() && !OWNER){ $('cookieBar').classList.remove('hidden'); }
+  $('cookieOkBtn').onclick=()=>{ try{ localStorage.setItem('bk_cookie_ok','1'); }catch(e){} $('cookieBar').classList.add('hidden'); initMetrika(); };
 })();
 // v1.8: выбор карты. Сохраняем последнюю выбранную.
 (function(){ if(localStorage_ok()){ const s=parseInt(localStorage.getItem('bk_map'),10); if(s>=0 && s<MAPS.length){ loadMap(s); resize(); } } })();
