@@ -505,7 +505,22 @@ function resize(){
     }
   }catch(e){}
 }
-addEventListener('resize',resize); addEventListener('orientationchange',()=>{ resize(); setTimeout(resize,120); setTimeout(resize,400); }); resize();
+// Умный ресайз: голый resize пересобирает путь и переносит врагов (e.d*=k).
+// Мобильные браузеры дёргают innerHeight при появлении/скрытии адресной строки —
+// это не повод пересчитывать карту. Реагируем только на значимые изменения,
+// с дебаунсом, и не посреди активной волны (отложим до её конца).
+let _rsW=innerWidth, _rsH=innerHeight, _rsT=0, _rsPending=false;
+function smartResize(){
+  const w=innerWidth, h=innerHeight;
+  const dw=Math.abs(w-_rsW), dh=Math.abs(h-_rsH);
+  // ширина изменилась вообще ИЛИ высота изменилась заметно (>12% — не дрожь хрома)
+  const significant = dw>1 || dh > _rsH*0.12;
+  if(!significant) return;
+  if(waveActive){ _rsPending=true; return; } // не дёргаем путь в бою
+  _rsW=w; _rsH=h; resize();
+}
+addEventListener('resize',()=>{ clearTimeout(_rsT); _rsT=setTimeout(smartResize,150); });
+addEventListener('orientationchange',()=>{ _rsW=innerWidth; _rsH=innerHeight; resize(); setTimeout(()=>{_rsW=innerWidth;_rsH=innerHeight;resize();},120); setTimeout(()=>{_rsW=innerWidth;_rsH=innerHeight;resize();},400); }); resize();
 
 function posAt(d){
   let acc=0;
@@ -1279,6 +1294,7 @@ function update(dtMs){
     }
   } else if(waveActive && enemies.length===0){
     waveActive=false;
+    if(_rsPending){ _rsPending=false; _rsW=innerWidth; _rsH=innerHeight; resize(); } // отложенный ресайз применяем в паузе между волнами
     const bonus=Math.round((40+wave*8)*(stormMode?0.75:1)*(1+upgEff('ulov')));
     money+=bonus; stats.gold+=bonus; SND.coin();
     if(wave>=MAXWAVE){ endGame(true); return; }
