@@ -25,7 +25,7 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
 html,body { height:100%; background:#0e1626; overflow:hidden; font-family:'RussoOne','Segoe UI',system-ui,sans-serif; letter-spacing:.3px; touch-action:none; }
-#wrap { position:fixed; inset:0; display:flex; align-items:flex-start; justify-content:center; }
+#wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
 canvas { display:block; }
 #top {
   position:fixed; top:env(safe-area-inset-top,0); left:0; right:0; z-index:5;
@@ -257,7 +257,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.8</div>
+  <div id="ver">v1.8.9</div>
 </div>
 
 <!-- v1.7 экран метапрогрессии -->
@@ -281,7 +281,7 @@ if(YM_ID){
   (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
   ym(YM_ID, "init", {clickmap:true, trackLinks:true, accurateTrackBounce:true, webvisor:true});
 }
-const GAME_VER='1.8.8';
+const GAME_VER='1.8.9';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -474,9 +474,10 @@ function srand(a,b){ let h=(a*374761393+b*668265263)|0; h=(h^(h>>13))*1274126177
 
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 const DPR_CAP=1.5;
+const VIEW_W_CAP=640, VIEW_H_CAP=1180; // потолок игрового вьюпорта — на больших десктоп-окнах не растягиваем буфер на весь экран (иначе рендер тяжелеет)
 let W,H,CS,offX,offY, pathPts=[], pathLen=0, segLens=[];
 function resize(){
-  W=innerWidth; H=innerHeight;
+  W=Math.min(innerWidth,VIEW_W_CAP); H=Math.min(innerHeight,VIEW_H_CAP);
   const dpr=Math.min(devicePixelRatio||1,DPR_CAP);
   cv.width=W*dpr; cv.height=H*dpr;
   cv.style.width=W+'px'; cv.style.height=H+'px';
