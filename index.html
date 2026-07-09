@@ -192,8 +192,8 @@ button, .tcard { transition:transform .09s ease-out; }
 #overlay #contBtn { background:#4caf78; color:#04140b; font-size:16px; padding:13px 34px; box-shadow:0 6px 20px rgba(76,175,120,.4); }
 #overlay #shareBtn { display:none; background:#22314f; color:#e8f0ff; font-size:15px; padding:12px 34px; box-shadow:none; }
 #ver { margin-top:18px; font-size:12px; color:#6d81ab; letter-spacing:.6px; display:flex; align-items:center; justify-content:center; gap:8px; }
-#reloadBtn { flex:0 0 auto; align-self:center; font-family:inherit; font-size:11px; font-weight:700; letter-spacing:.4px; color:#a9bce0; background:#1d2a45; border:1px solid #2a3a5c; border-radius:10px; padding:4px 10px; min-height:0; line-height:1.2; cursor:pointer; white-space:nowrap; }
-#reloadBtn:active { transform:scale(.96); background:#26375a; }
+#ver #reloadBtn { flex:0 0 auto; align-self:center; width:22px; height:22px; padding:0; font-size:13px; font-weight:400; line-height:1; color:#6d81ab; background:transparent; border:1px solid #33425f; border-radius:50%; box-shadow:none; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; opacity:.75; }
+#ver #reloadBtn:active { transform:rotate(180deg) scale(.94); opacity:1; color:#a9bce0; }
 #ovLegal { margin-top:6px; font-size:11px; color:#5f7295; text-align:center; line-height:1.5; }
 #ovLegal a { color:#8fa8d4; text-decoration:underline; }
 #privacyScreen {
@@ -292,7 +292,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.11 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳ Обновить</button></div>
+  <div id="ver">v1.8.11 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
   <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
 </div>
 
