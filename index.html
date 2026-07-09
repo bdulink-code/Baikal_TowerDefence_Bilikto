@@ -75,6 +75,10 @@ button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-
   transition:transform .08s; touch-action:none;
 }
 .tcard .ico { width:clamp(36px,10.5vw,52px); height:clamp(36px,10.5vw,52px); border-radius:10px; display:block; margin:0 auto 2px; pointer-events:none; object-fit:cover; }
+.tcard .roleB { position:absolute; top:5px; right:5px; font-size:10px; line-height:1; padding:2px 4px; border-radius:7px; font-weight:800; pointer-events:none; }
+.tcard .rb-archer { background:rgba(255,210,60,.9); color:#3a2a00; }
+.tcard .rb-frost { background:rgba(127,216,255,.9); color:#06304a; }
+.tcard .rb-fire { background:rgba(255,122,60,.92); color:#3a1400; }
 .tcard .nm { font-size:clamp(9px,2.7vw,11.5px); font-weight:800; display:flex; align-items:center; justify-content:center; height:2.4em; line-height:1.05; margin-top:1px; pointer-events:none; }
 .tcard .pr { font-size:clamp(10px,3vw,13px); font-weight:800; color:#ffd23c; display:block; pointer-events:none; }
 .tcard.selected { border-color:#ffd23c; background:#2a3a5e; transform:translateY(-4px); box-shadow:0 6px 14px rgba(255,210,60,.25); }
@@ -593,9 +597,9 @@ function posAt(d){
 
 // ================= ДАННЫЕ =================
 const TOWERS = {
-  archer:{ico:'🏹',cost:50, dmg:9, cd:0.5, rng:2.3},
-  frost:{ico:'❄️',cost:75, dmg:6, cd:0.85, rng:2.1, slow:true},
-  fire:{ico:'🔥',cost:120, dmg:20, cd:1.35, rng:2.5, splash:true},
+  archer:{ico:'🏹',cost:50, dmg:10, cd:0.5, rng:2.3},
+  frost:{ico:'❄️',cost:75, dmg:7, cd:0.85, rng:2.1, slow:true},
+  fire:{ico:'🔥',cost:120, dmg:23, cd:1.35, rng:2.5, splash:true},
 };
 // роботы: body/dark = корпус, eye = свечение глаза
 const ENEMIES = {
@@ -841,7 +845,7 @@ function renderCards(){
     const t=TOWERS[k];
     const d=document.createElement('div');
     d.className='tcard';
-    d.innerHTML='<img class="ico" src="./assets/'+k+'.png" alt=""><span class="nm">'+STR.towers[k].nm+'</span><span class="pr">'+t.cost+' 🐟</span>';
+    d.innerHTML='<img class="ico" src="./assets/'+k+'.png" alt=""><span class="roleB rb-'+k+'">'+STR.towers[k].sym+'</span><span class="nm">'+STR.towers[k].nm+'</span><span class="pr">'+t.cost+' 🐟</span>';
     // drag&drop с карты
     d.addEventListener('pointerdown',e=>{
       A();
@@ -969,7 +973,7 @@ function showBuildMenu(c,r){
   bmCell=[c,r]; hideTwMenu();
   $('bmTitle').textContent=STR.buildTitle;
   for(const k in bmBtns){
-    bmBtns[k].textContent=TOWERS[k].ico+' '+STR.towers[k].nm+' · '+TOWERS[k].cost+'🐟';
+    bmBtns[k].innerHTML=TOWERS[k].ico+' '+STR.towers[k].nm+' · '+TOWERS[k].cost+'🐟<br><span style="font-size:11px;opacity:.85;font-weight:700">'+STR.towers[k].sym+' '+STR.towers[k].role+'</span>';
     bmBtns[k].disabled=money<TOWERS[k].cost;
   }
   buildMenu.classList.add('on');
