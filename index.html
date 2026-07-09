@@ -125,6 +125,7 @@ button, .tcard { transition:transform .09s ease-out; }
 #overlay {
   position:fixed; inset:0; z-index:10; display:flex; flex-direction:column;
   align-items:center; justify-content:center; text-align:center;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
   background:
     linear-gradient(180deg, rgba(6,10,20,.55) 0%, rgba(6,10,20,.82) 55%, rgba(6,10,20,.96) 100%),
     url('./assets/cover.jpg') center 30%/cover no-repeat #060a14;
@@ -142,6 +143,16 @@ button, .tcard { transition:transform .09s ease-out; }
 #overlay p { color:#9fb2d6; font-size:15px; line-height:1.55; max-width:330px; margin-bottom:22px; }
 #overlay button { background:#ffd23c; color:#1a1400; font-size:18px; padding:14px 42px; box-shadow:0 6px 20px rgba(255,210,60,.35); }
 #ovStars { font-size:36px; letter-spacing:8px; color:#ffd23c; margin-bottom:12px; text-shadow:0 4px 18px rgba(255,210,60,.5); }
+/* низкие экраны (iPhone SE и т.п.): меню не влезает по высоте — от верха + прокрутка + сжать. ПОСЛЕ базовых правил, иначе не перебьёт */
+@media (max-height: 640px) {
+  #overlay { justify-content:flex-start; padding:12px 20px; }
+  #overlay h1 { font-size:24px; margin-bottom:5px; }
+  #overlay p { font-size:13px; line-height:1.4; margin-bottom:10px; }
+  #ovStars { font-size:28px; margin-bottom:6px; }
+  #ovBtns { margin-bottom:5px; }
+  #ovRecord { margin-top:6px; }
+  #ver { margin-top:8px; }
+}
 #ovStars .off { color:#2c3a58; text-shadow:none; }
 #ovStars span { display:inline-block; }
 #ovStars.staged span { transform:scale(0); }
