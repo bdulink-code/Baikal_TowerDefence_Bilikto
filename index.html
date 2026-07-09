@@ -304,7 +304,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.11 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
+  <div id="ver">v1.8.12 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
   <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
 </div>
 
@@ -336,6 +336,28 @@ button, .tcard { transition:transform .09s ease-out; }
 
 <script type="module">
 import { STR } from "./strings.js";
+
+// ===== АНТИ-ЗУМ (Safari iOS игнорит user-scalable=no) =====
+// Safari с iOS10 не уважает мету зума. Глушим пинч и двойной-тап на уровне событий.
+// Одиночные игровые тапы НЕ трогаем — гасим только мультитач-жесты и dbl-tap.
+(function(){
+  // Safari-специфичные события пинча
+  ['gesturestart','gesturechange','gestureend'].forEach(ev=>
+    document.addEventListener(ev, e=>e.preventDefault(), {passive:false}));
+  // пинч двумя пальцами (когда gesture* недоступны)
+  document.addEventListener('touchmove', e=>{
+    if(e.touches && e.touches.length > 1) e.preventDefault();
+  }, {passive:false});
+  // двойной-тап зумит в Safari — гасим быстрый повторный тап, но НЕ по кнопкам
+  let lastTap = 0;
+  document.addEventListener('touchend', e=>{
+    const now = Date.now();
+    const t = e.target;
+    const interactive = t && t.closest && t.closest('button,a,input,select,textarea,[role="button"]');
+    if(now - lastTap < 300 && !interactive){ e.preventDefault(); }
+    lastTap = now;
+  }, {passive:false});
+})();
 
 // ===== SAFE-AREA для встроенных браузеров (Instagram/TikTok in-app WebView) =====
 // Эти WebView кладут свою шапку/тулбар поверх страницы, но env(safe-area-inset-*)
@@ -372,7 +394,7 @@ import { STR } from "./strings.js";
 
 // ===== АНАЛИТИКА (Яндекс.Метрика) =====
 const YM_ID = 110360565; // <- сюда номер счётчика Метрики
-const GAME_VER='1.8.11';
+const GAME_VER='1.8.12';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
