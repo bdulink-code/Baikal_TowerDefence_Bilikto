@@ -28,7 +28,7 @@ html,body { height:100%; background:#0e1626; overflow:hidden; font-family:'Russo
 #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
 canvas { display:block; }
 #top {
-  position:fixed; top:env(safe-area-inset-top,0); left:0; right:0; z-index:5;
+  position:fixed; top:var(--sat, env(safe-area-inset-top,0)); left:0; right:0; z-index:5;
   display:flex; justify-content:space-around; align-items:center;
   padding:8px 10px; color:#e8f0ff; font-weight:800; font-size:16px;
   text-shadow:0 2px 6px #000; pointer-events:none;
@@ -37,7 +37,7 @@ canvas { display:block; }
 button { border:none; border-radius:12px; font-weight:800; cursor:pointer; font-family:inherit; }
 
 #bar {
-  position:fixed; bottom:0; left:0; right:0; z-index:6;
+  position:fixed; bottom:var(--sab, 0); left:0; right:0; z-index:6;
   background:linear-gradient(180deg, rgba(20,30,51,.0), #141e33 22%);
   padding:6px 8px calc(8px + env(safe-area-inset-bottom,0));
   max-height:26vh;
@@ -183,7 +183,7 @@ button, .tcard { transition:transform .09s ease-out; }
 #mapPick .mp .d1 { background:rgba(90,180,90,.22); color:#7ed67e; }
 #mapPick .mp .d2 { background:rgba(230,190,70,.20); color:#e6c14a; }
 #mapPick .mp .d3 { background:rgba(220,90,110,.20); color:#e07a90; }
-#mapPick .mpTitle { flex-basis:100%; text-align:center; font-size:11px; letter-spacing:1.4px; color:#7f93b7; margin-bottom:2px; }
+#mapPick .mpTitle { flex-basis:100%; text-align:center; font-size:11px; letter-spacing:.6px; line-height:1.35; color:#7f93b7; margin-bottom:2px; }
 #ovStats { display:grid; grid-template-columns:auto auto; gap:7px 22px; font-size:14.5px; color:#9fb2d6; margin-bottom:22px; }
 #ovStats b { color:#fff; text-align:right; font-weight:800; }
 #ovRecord { margin-top:14px; font-size:14px; color:#ffd23c; letter-spacing:.5px; min-height:18px; }
@@ -290,7 +290,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.9</div>
+  <div id="ver">v1.8.10</div>
   <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
 </div>
 
@@ -323,9 +323,42 @@ button, .tcard { transition:transform .09s ease-out; }
 <script type="module">
 import { STR } from "./strings.js";
 
+// ===== SAFE-AREA для встроенных браузеров (Instagram/TikTok in-app WebView) =====
+// Эти WebView кладут свою шапку/тулбар поверх страницы, но env(safe-area-inset-*)
+// в них не приходит (=0), из-за чего наш #top и #bar уезжают под их панели.
+// Считаем реальные перекрытия через visualViewport; для in-app даём гарантированный минимум.
+(function(){
+  const ua = navigator.userAgent || '';
+  const inApp = /Instagram|FBAN|FBAV|FB_IAB|TikTok|BytedanceWebview|Line\/|OKApp|VKAndroidApp/i.test(ua);
+  const MIN_TOP = inApp ? 8 : 0;   // подстраховка сверху в in-app
+  const MIN_BOT = inApp ? 12 : 0;  // подстраховка снизу в in-app (их тулбар)
+  const root = document.documentElement;
+  function apply(){
+    let topOv = 0, botOv = 0;
+    const vv = window.visualViewport;
+    if(vv){
+      topOv = Math.max(0, vv.offsetTop);
+      botOv = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+    }
+    const nsat = Math.max(topOv, MIN_TOP), nsab = Math.max(botOv, MIN_BOT);
+    const changed = root.style.getPropertyValue('--sab') !== nsab+'px' || root.style.getPropertyValue('--sat') !== nsat+'px';
+    root.style.setProperty('--sat', nsat + 'px');
+    root.style.setProperty('--sab', nsab + 'px');
+    // safe-area поменялась (панель браузера) — пересобрать поле, но не посреди волны
+    if(changed && typeof window.__bkResize === 'function') window.__bkResize();
+  }
+  apply();
+  window.__bkSafeArea = apply;
+  if(window.visualViewport){
+    visualViewport.addEventListener('resize', apply);
+    visualViewport.addEventListener('scroll', apply);
+  }
+  addEventListener('orientationchange', ()=> setTimeout(apply, 250));
+})();
+
 // ===== АНАЛИТИКА (Яндекс.Метрика) =====
 const YM_ID = 110360565; // <- сюда номер счётчика Метрики
-const GAME_VER='1.8.9';
+const GAME_VER='1.8.10';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -542,8 +575,11 @@ function resize(){
   cv.style.width=W+'px'; cv.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const topEl=document.getElementById('top'), barEl=document.getElementById('bar');
-  const topPad=(topEl&&topEl.offsetHeight>0?topEl.offsetHeight:Math.max(48,H*0.07))+6;
-  const botPad=(barEl&&barEl.offsetHeight>0?barEl.offsetHeight:Math.max(120,H*0.20))+10;
+  const cs=getComputedStyle(document.documentElement);
+  const sat=parseFloat(cs.getPropertyValue('--sat'))||0;
+  const sab=parseFloat(cs.getPropertyValue('--sab'))||0;
+  const topPad=(topEl&&topEl.offsetHeight>0?topEl.offsetHeight:Math.max(48,H*0.07))+6+sat;
+  const botPad=(barEl&&barEl.offsetHeight>0?barEl.offsetHeight:Math.max(120,H*0.20))+10+sab;
   CS=Math.min(W/COLS,(H-topPad-botPad)/ROWS);
   offX=(W-CS*COLS)/2;
   const availH=H-topPad-botPad;
@@ -578,6 +614,8 @@ function smartResize(){
   if(waveActive){ _rsPending=true; return; } // не дёргаем путь в бою
   _rsW=w; _rsH=h; resize();
 }
+// safe-area изменилась (панель in-app браузера): пересобрать поле, но не в бою
+window.__bkResize=function(){ if(waveActive){ _rsPending=true; return; } resize(); };
 addEventListener('resize',()=>{ clearTimeout(_rsT); _rsT=setTimeout(smartResize,150); });
 addEventListener('orientationchange',()=>{ _rsW=innerWidth; _rsH=innerHeight; resize(); setTimeout(()=>{_rsW=innerWidth;_rsH=innerHeight;resize();},120); setTimeout(()=>{_rsW=innerWidth;_rsH=innerHeight;resize();},400); }); resize();
 
