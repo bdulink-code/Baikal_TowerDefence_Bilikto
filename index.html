@@ -171,8 +171,14 @@ button, .tcard { transition:transform .09s ease-out; }
 .btnPulse { animation:pulse 1.2s infinite; }
 #mapPick { display:none; flex-wrap:wrap; justify-content:center; gap:8px; margin:2px 0 18px; max-width:340px; }
 #mapPick.on { display:flex; }
-#mapPick .mp { min-height:0; padding:8px 12px; font-size:13px; font-weight:800; border-radius:11px; background:#1d2a45; color:#a9bce0; box-shadow:none; border:2px solid #2a3a5c; letter-spacing:.3px; }
+#mapPick .mp { min-height:0; padding:7px 7px 6px; font-size:12px; font-weight:800; border-radius:12px; background:#1d2a45; color:#a9bce0; box-shadow:none; border:2px solid #2a3a5c; letter-spacing:.2px; display:flex; flex-direction:column; align-items:center; gap:3px; width:98px; }
 #mapPick .mp.sel { background:#2a3a5e; color:#ffd23c; border-color:#ffd23c; }
+#mapPick .mp svg { display:block; }
+#mapPick .mp .mpNm { line-height:1.1; text-align:center; }
+#mapPick .mp .mpDf { font-size:9px; font-weight:700; letter-spacing:.4px; padding:1px 6px; border-radius:7px; }
+#mapPick .mp .d1 { background:rgba(90,180,90,.22); color:#7ed67e; }
+#mapPick .mp .d2 { background:rgba(230,190,70,.20); color:#e6c14a; }
+#mapPick .mp .d3 { background:rgba(220,90,110,.20); color:#e07a90; }
 #mapPick .mpTitle { flex-basis:100%; text-align:center; font-size:11px; letter-spacing:1.4px; color:#7f93b7; margin-bottom:2px; }
 #ovStats { display:grid; grid-template-columns:auto auto; gap:7px 22px; font-size:14.5px; color:#9fb2d6; margin-bottom:22px; }
 #ovStats b { color:#fff; text-align:right; font-weight:800; }
@@ -766,13 +772,31 @@ $('metaBtnOv').textContent=STR.metaToImprove;
 })();
 // v1.8: выбор карты. Сохраняем последнюю выбранную.
 (function(){ if(localStorage_ok()){ const s=parseInt(localStorage.getItem('bk_map'),10); if(s>=0 && s<MAPS.length){ loadMap(s); resize(); } } })();
+function mapPreviewSVG(wp){
+  // мини-схема формы дороги: клиппим вход/выход за гридом к краю 0..8 / 0..10, рисуем ломаную
+  const W=8, H=10, s=9, pad=4; // s=размер клетки в превью
+  const cx=v=>pad+Math.max(0,Math.min(W,v))*s;
+  const cy=v=>pad+Math.max(0,Math.min(H,v))*s;
+  let d='';
+  wp.forEach((p,i)=>{ d+=(i?'L':'M')+cx(p[0]).toFixed(1)+' '+cy(p[1]).toFixed(1)+' '; });
+  const w=W*s+pad*2, h=H*s+pad*2;
+  return '<svg width="52" height="'+Math.round(52*h/w)+'" viewBox="0 0 '+w+' '+h+'">'
+    +'<rect x="0" y="0" width="'+w+'" height="'+h+'" rx="4" fill="rgba(20,30,50,.5)"/>'
+    +'<path d="'+d+'" fill="none" stroke="#5b76a8" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<circle cx="'+cx(wp[0][0]).toFixed(1)+'" cy="'+cy(wp[0][1]).toFixed(1)+'" r="3" fill="#7ed67e"/>'
+    +'<circle cx="'+cx(wp[wp.length-1][0]).toFixed(1)+'" cy="'+cy(wp[wp.length-1][1]).toFixed(1)+'" r="3" fill="#e07a90"/>'
+    +'</svg>';
+}
 function renderMapPick(){
   const box=$('mapPick'); box.innerHTML='';
   const ttl=document.createElement('div'); ttl.className='mpTitle'; ttl.textContent=STR.mapTitle; box.appendChild(ttl);
   MAPS.forEach((m,i)=>{
+    const info=STR.maps[m.id]||{nm:m.id,df:2};
     const b=document.createElement('button');
     b.className='mp'+(i===mapIdx?' sel':'');
-    b.textContent=STR.maps[m.id]||m.id;
+    b.innerHTML=mapPreviewSVG(m.wp)
+      +'<span class="mpNm">'+(info.nm||m.id)+'</span>'
+      +'<span class="mpDf d'+(info.df||2)+'">'+(STR.mapDiff[info.df]||'')+'</span>';
     b.onclick=()=>{ A(); loadMap(i); if(localStorage_ok()){ try{ localStorage.setItem('bk_map',String(i)); }catch(e){} } resize(); renderMapPick(); };
     box.appendChild(b);
   });
