@@ -304,7 +304,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.14 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
+  <div id="ver">v1.8.15 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
   <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
 </div>
 
@@ -394,7 +394,7 @@ import { STR } from "./strings.js";
 
 // ===== АНАЛИТИКА (Яндекс.Метрика) =====
 const YM_ID = 110360565; // <- сюда номер счётчика Метрики
-const GAME_VER='1.8.14';
+const GAME_VER='1.8.15';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -1834,6 +1834,9 @@ const EIMG={}, EIMGW={};
 const MILIMG=new Image(); MILIMG.src='./assets/militia.png';
 // Звери Байкала (подмога): 0=медведь-танк, 1=соболь-разведчик, 2=волк-боец
 const BEASTIMG=['bear','sable','wolf'].map(n=>{ const im=new Image(); im.src='./assets/beast_'+n+'.png'; return im; });
+// спрайт-листы цикла ходьбы (8 кадров, ячейка 112×112, низ = земля); нет листа → фолбэк на риг
+const BEASTSHEET=[null,null,null];
+{ const im=new Image(); im.src='./assets/beast_wolf_walk.webp'; BEASTSHEET[2]=im; }
 ['archer','frost','fire'].forEach(tp=>{
   TIMG[tp]=[1,2,3].map(l=>{ const im=new Image(); im.src='./assets/'+tp+(l===1?'':l)+'.png'; return im; });
 });
@@ -2236,9 +2239,18 @@ function render(){
       ctx.fillStyle='#1a2438'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6,4);
       ctx.fillStyle='#e8b45a'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6*Math.max(0,m.hp/m.maxhp),4);
       ctx.scale(mflp,1); ctx.rotate(tilt);
-      // галоп: передние/задние лапы в противофазе + подъём, корпус качается
-      const gstp=Math.sin(m.swing*1.1)*(fight?0.5:1);
-      drawRig(spr,-ms/2,-ms*0.68,ms,ms,PUPPET.beast,gstp);
+      const sheet=BEASTSHEET[m.beast||0];
+      if(sheet && sheet.complete && sheet.naturalWidth){
+        // видео-цикл ходьбы: 8 кадров, фаза от m.swing (в бою медленнее)
+        const fw=sheet.naturalWidth/8, fh=sheet.naturalHeight;
+        const fi=Math.floor(m.swing*(fight?0.7:1.5))%8;
+        const d=CS*1.35;
+        ctx.drawImage(sheet, fi*fw,0,fw,fh, -d/2, ms*0.32-d, d, d);
+      } else {
+        // галоп: передние/задние лапы в противофазе + подъём, корпус качается
+        const gstp=Math.sin(m.swing*1.1)*(fight?0.5:1);
+        drawRig(spr,-ms/2,-ms*0.68,ms,ms,PUPPET.beast,gstp);
+      }
       ctx.restore();
       return;
     }
