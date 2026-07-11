@@ -304,7 +304,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.15 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
+  <div id="ver">v1.8.16 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
   <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
 </div>
 
@@ -394,7 +394,7 @@ import { STR } from "./strings.js";
 
 // ===== АНАЛИТИКА (Яндекс.Метрика) =====
 const YM_ID = 110360565; // <- сюда номер счётчика Метрики
-const GAME_VER='1.8.15';
+const GAME_VER='1.8.16';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -1834,9 +1834,37 @@ const EIMG={}, EIMGW={};
 const MILIMG=new Image(); MILIMG.src='./assets/militia.png';
 // Звери Байкала (подмога): 0=медведь-танк, 1=соболь-разведчик, 2=волк-боец
 const BEASTIMG=['bear','sable','wolf'].map(n=>{ const im=new Image(); im.src='./assets/beast_'+n+'.png'; return im; });
-// спрайт-листы цикла ходьбы (8 кадров, ячейка 112×112, низ = земля); нет листа → фолбэк на риг
-const BEASTSHEET=[null,null,null];
-{ const im=new Image(); im.src='./assets/beast_wolf_walk.webp'; BEASTSHEET[2]=im; }
+// Скелетные атласы запчастей зверей (голова/торс/хвост/4 лапы) — анимация чистым кодом; нет атласа → фолбэк на риг
+const BEASTSKEL=[null,null,null];
+{ const im=new Image(); im.src='./assets/beast_wolf_parts.webp';
+  BEASTSKEL[2]={img:im,
+    p:{torso:[2,2,194,180,0,0],head:[198,2,128,135,44.8,108],tail:[328,2,88,100,22,90],
+       fl1:[2,184,45,186,22.5,18.6],fl2:[49,184,48,175,24,17.5],bl1:[99,184,66,181,33,18.1],bl2:[167,184,75,180,37.5,18]},
+    a:{neck:[147,36],shoulder:[128,108],hip:[52,104],tailA:[12,47]},
+    hipY:104, legvis:163, totalH:339};
+}
+function drawSkelPart(sk,name,cx,cy,ang,s){
+  const p=sk.p[name];
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(ang);
+  ctx.drawImage(sk.img, p[0],p[1],p[2],p[3], -p[4]*s,-p[5]*s, p[2]*s,p[3]*s);
+  ctx.restore();
+}
+// Скелет зверя: (0,0)=земля под центром. ph=фаза шага, fgt=0..1 бой, d=полная высота
+function drawBeastSkel(sk,ph,fgt,d){
+  const s=d/sk.totalH, sp=Math.sin(ph);
+  const bob=sp*sp*3*s;
+  const ty=-(sk.legvis+sk.hipY)*s-bob, tx=-sk.p.torso[2]*s/2;
+  const A=k=>[tx+sk.a[k][0]*s, ty+sk.a[k][1]*s];
+  const lsw=0.35*(1-fgt*0.4);
+  const strike=fgt*Math.max(0,Math.sin(ph*2))*0.9; // взмах передней лапой в бою
+  drawSkelPart(sk,'bl2',A('hip')[0],A('hip')[1],sp*lsw,s);
+  drawSkelPart(sk,'fl2',A('shoulder')[0],A('shoulder')[1],-sp*lsw+fgt*0.35,s);
+  drawSkelPart(sk,'tail',A('tailA')[0],A('tailA')[1],0.15+sp*0.12+fgt*0.25,s);
+  drawSkelPart(sk,'torso',tx,ty,sp*0.03,s);
+  drawSkelPart(sk,'bl1',A('hip')[0],A('hip')[1],-sp*lsw,s);
+  drawSkelPart(sk,'fl1',A('shoulder')[0],A('shoulder')[1],sp*lsw-strike,s);
+  drawSkelPart(sk,'head',A('neck')[0],A('neck')[1],Math.sin(ph*2)*0.06-fgt*0.28,s);
+}
 ['archer','frost','fire'].forEach(tp=>{
   TIMG[tp]=[1,2,3].map(l=>{ const im=new Image(); im.src='./assets/'+tp+(l===1?'':l)+'.png'; return im; });
 });
@@ -2239,13 +2267,12 @@ function render(){
       ctx.fillStyle='#1a2438'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6,4);
       ctx.fillStyle='#e8b45a'; ctx.fillRect(-ms*0.3,-ms*0.82,ms*0.6*Math.max(0,m.hp/m.maxhp),4);
       ctx.scale(mflp,1); ctx.rotate(tilt);
-      const sheet=BEASTSHEET[m.beast||0];
-      if(sheet && sheet.complete && sheet.naturalWidth){
-        // видео-цикл ходьбы: 8 кадров, фаза от m.swing (в бою медленнее)
-        const fw=sheet.naturalWidth/8, fh=sheet.naturalHeight;
-        const fi=Math.floor(m.swing*(fight?0.7:1.5))%8;
-        const d=CS*1.35;
-        ctx.drawImage(sheet, fi*fw,0,fw,fh, -d/2, ms*0.32-d, d, d);
+      const sk=BEASTSKEL[m.beast||0];
+      if(sk && sk.img.complete && sk.img.naturalWidth){
+        // скелетная анимация из запчастей: походка/бой чистым кодом
+        ctx.save(); ctx.translate(0,ms*0.32);
+        drawBeastSkel(sk, m.swing*(fight?1.4:1.1), fight?1:0, CS*0.82);
+        ctx.restore();
       } else {
         // галоп: передние/задние лапы в противофазе + подъём, корпус качается
         const gstp=Math.sin(m.swing*1.1)*(fight?0.5:1);
