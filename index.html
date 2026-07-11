@@ -304,7 +304,7 @@ button, .tcard { transition:transform .09s ease-out; }
     <button id="shareBtn"></button>
   </div>
   <div id="ovRecord"></div>
-  <div id="ver">v1.8.17 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
+  <div id="ver">v1.8.18 <button id="reloadBtn" title="Обновить" aria-label="Обновить игру">⟳</button></div>
   <div id="ovLegal"><span id="ownerLine"></span><br><a id="privacyOpen" href="#"></a></div>
 </div>
 
@@ -394,7 +394,7 @@ import { STR } from "./strings.js";
 
 // ===== АНАЛИТИКА (Яндекс.Метрика) =====
 const YM_ID = 110360565; // <- сюда номер счётчика Метрики
-const GAME_VER='1.8.17';
+const GAME_VER='1.8.18';
 let OWNER=false;
 try{
   if(location.search.indexOf('owner')>-1){ localStorage.setItem('bk_owner','1'); }
@@ -1837,11 +1837,12 @@ const BEASTIMG=['bear','sable','wolf'].map(n=>{ const im=new Image(); im.src='./
 // Скелетные атласы запчастей зверей (голова/торс/хвост/4 лапы) — анимация чистым кодом; нет атласа → фолбэк на риг
 const BEASTSKEL=[null,null,null];
 { const im=new Image(); im.src='./assets/beast_wolf_parts.webp';
+  // части вырезаны из ОДНОГО рисунка (пропорции гарантированы): [x,y,w,h, пивотX,пивотY(в части), якорьX,якорьY(на торсе)]
   BEASTSKEL[2]={img:im,
-    p:{torso:[2,2,194,180,0,0],head:[198,2,82,87,28.7,69.6],tail:[282,2,74,84,18.5,75.6],
-       fl1:[2,184,36,103,18,10.3],fl2:[40,184,38,97,19,9.7],bl1:[80,184,56,105,28,10.5],bl2:[138,184,63,104,31.5,10.4]},
-    a:{neck:[147,36],shoulder:[128,108],hip:[52,104],tailA:[12,47]},
-    hipY:104, legvis:94.5, totalH:232};
+    p:{torso:[2,2,237,147,0,0,0,0],head:[241,2,108,104,58.2,59.2,177,32.2],
+       leg0:[2,151,48,79,24.1,10.8,59.9,130.2],leg1:[52,151,38,72,24,10.8,111.8,130.2],
+       leg2:[92,151,37,88,18.8,10.8,146.8,130.2],leg3:[131,151,39,79,10.4,10.8,172.4,130.2]},
+    groundY:207.2, totalH:234};
 }
 function drawSkelPart(sk,name,cx,cy,ang,s){
   const p=sk.p[name];
@@ -1852,18 +1853,19 @@ function drawSkelPart(sk,name,cx,cy,ang,s){
 // Скелет зверя: (0,0)=земля под центром. ph=фаза шага, fgt=0..1 бой, d=полная высота
 function drawBeastSkel(sk,ph,fgt,d){
   const s=d/sk.totalH, sp=Math.sin(ph);
-  const bob=sp*sp*3*s;
-  const ty=-(sk.legvis+sk.hipY)*s-bob, tx=-sk.p.torso[2]*s/2;
-  const A=k=>[tx+sk.a[k][0]*s, ty+sk.a[k][1]*s];
-  const lsw=0.35*(1-fgt*0.4);
-  const strike=fgt*Math.max(0,Math.sin(ph*2))*0.9; // взмах передней лапой в бою
-  drawSkelPart(sk,'bl2',A('hip')[0],A('hip')[1],sp*lsw,s);
-  drawSkelPart(sk,'fl2',A('shoulder')[0],A('shoulder')[1],-sp*lsw+fgt*0.35,s);
-  drawSkelPart(sk,'tail',A('tailA')[0],A('tailA')[1],0.15+sp*0.12+fgt*0.25,s);
-  drawSkelPart(sk,'torso',tx,ty,sp*0.03,s);
-  drawSkelPart(sk,'bl1',A('hip')[0],A('hip')[1],-sp*lsw,s);
-  drawSkelPart(sk,'fl1',A('shoulder')[0],A('shoulder')[1],sp*lsw-strike,s);
-  drawSkelPart(sk,'head',A('neck')[0],A('neck')[1],Math.sin(ph*2)*0.06-fgt*0.28,s);
+  const bob=sp*sp*2.5*s;
+  const tx=-sk.p.torso[2]*s/2, ty=-sk.groundY*s-bob;
+  const lsw=0.3*(1-fgt*0.4);
+  const PHS=[1,-1,-1,1]; // диагональный шаг
+  for(let i=0;i<4;i++){
+    const p=sk.p['leg'+i];
+    let a=PHS[i]*sp*lsw;
+    if(fgt&&i===3) a-=Math.max(0,Math.sin(ph*2))*0.9; // удар передней лапой
+    drawSkelPart(sk,'leg'+i, tx+p[6]*s, ty+p[7]*s, a, s);
+  }
+  drawSkelPart(sk,'torso',tx,ty,sp*0.03,s); // торс поверх суставов
+  const hp=sk.p.head;
+  drawSkelPart(sk,'head', tx+hp[6]*s, ty+hp[7]*s, Math.sin(ph*2)*0.06-fgt*0.28, s);
 }
 ['archer','frost','fire'].forEach(tp=>{
   TIMG[tp]=[1,2,3].map(l=>{ const im=new Image(); im.src='./assets/'+tp+(l===1?'':l)+'.png'; return im; });
